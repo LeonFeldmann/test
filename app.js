@@ -7,6 +7,9 @@ const port = 3000;
 app.get('/', (req, res) => res.send('Hello World!'));
 
 
+
+
+
 // catch 400
 app.use((err, req, res, next) => {
     console.log(err.stack);
@@ -16,7 +19,11 @@ app.use((err, req, res, next) => {
 
 
 
-app.listen(port, () => console.log('Example app listening in port: ' + ${port}))#
+//app.listen(port, () => {console.log('Example app listening in port: ' + port);});
+app.listen(3000, function () {
+    console.log('Example app listening on port 3000!');
+  });
+
 
 // test
 // does this work?
