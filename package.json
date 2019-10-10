@@ -1,0 +1,19 @@
+{
+  "name": "fileviewerbackend",
+  "version": "1.0.0",
+  "description": "This is the Backend of the FileViewerProject",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LeonFeldmann/WebFileViewerProject.git"
+  },
+  "author": "Leon Feldmann",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LeonFeldmann/WebFileViewerProject/issues"
+  },
+  "homepage": "https://github.com/LeonFeldmann/WebFileViewerProject#readme"
+}
