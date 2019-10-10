@@ -1,10 +1,26 @@
-const express = require('express')
-const MongoClient = require('mongodb').MongoClient;
+const express = require('express');
+// const MongoClient = require('mongodb').MongoClient;
 const bodyParser = require('body-parser');
 const app =  express();
+const fs = require('fs');
+const path = require('path');
 const port = 3000;
+app.use(bodyParser.urlencoded({ extended: true }));
+require('./app/routes')(app, {});
+
 
 app.get('/', (req, res) => res.send('Hello World!'));
+
+app.get('/document', function(req, res, next) {
+
+  const filePath = './example.pdf';
+  const stream = fs.createReadStream(filePath);
+  res.writeHead(200, {
+      'Content-disposition': 'attachment; filename="' + encodeURIComponent(path.basename(filePath))  + '"',
+      'Content-type': 'application/pdf',
+  });
+  res.send();
+});
 
 
 
@@ -18,12 +34,5 @@ app.use((err, req, res, next) => {
 });
 
 
+app.listen(port, () => {console.log('Example app listening in port: ' + port);});
 
-//app.listen(port, () => {console.log('Example app listening in port: ' + port);});
-app.listen(3000, function () {
-    console.log('Example app listening on port 3000!');
-  });
-
-
-// test
-// does this work?
