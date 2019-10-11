@@ -6,6 +6,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "dependencies": {
+    "express": "^4.13.3",
+    "body-parser": "1.19.0",
+    "fs": "0.0.1-security",
+    "path": "0.12.7"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/LeonFeldmann/WebFileViewerProject.git"

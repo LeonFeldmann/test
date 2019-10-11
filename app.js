@@ -4,7 +4,11 @@ const bodyParser = require('body-parser');
 const app =  express();
 const fs = require('fs');
 const path = require('path');
-const port = process.env.PORT || 3000;
+let port = process.env.PORT;
+if (port == null || port == "") {
+  port = 3000;
+}
+
 app.use(bodyParser.urlencoded({ extended: true }));
 require('./app/routes')(app, {});
 
@@ -14,16 +18,16 @@ app.get('/', (req, res) => res.send('Hello World!'));
 
 
 
-app.get('/document', function(req, res, next) {
+// app.get('/document', function(req, res, next) {
 
-  const filePath = './example.pdf';
-  const stream = fs.createReadStream(filePath);
-  res.writeHead(200, {
-      'Content-disposition': 'attachment; filename="' + encodeURIComponent(path.basename(filePath))  + '"',
-      'Content-type': 'application/pdf',
-  });
-  res.send();
-});
+//   const filePath = './example.pdf';
+//   const stream = fs.createReadStream(filePath);
+//   res.writeHead(200, {
+//       'Content-disposition': 'attachment; filename="' + encodeURIComponent(path.basename(filePath))  + '"',
+//       'Content-type': 'application/pdf',
+//   });
+//   res.send();
+// });
 
 
 // catch 400
