@@ -8,7 +8,7 @@ var express     = require('express'),
     passportLocalMongoose = require("passport-local-mongoose");
 var mongoose      = require("mongoose");
 var User          = require("./models/user");
-var document      = require("./models/document");
+var Document      = require("./models/document");
 
 var url = process.env.MONGODB_URI || "mongodb://localhost/data";
 mongoose.connect(url, {useNewUrlParser: true, useUnifiedTopology: true });
@@ -88,8 +88,95 @@ res.send("This is content for logged users");
 
 
 
+ // receive specifications after sending pdf and return with id
+ app.post('/document', (req, res) => {
+  var date = req.body.date;
+  var institution = req.body.institution;
+  console.log(req.body);
+
+  if(req.body.hasOwnProperty('date') && req.body.hasOwnProperty('institution') && date != "" && institution != ""){
+    res.statusCode = 200;    
+  } else {
+    res.statusCode = 400;    
+  }
+  res.send();
+});
 
 
+// send specs of all documents
+app.get("/documents", async function (req, res) {
+
+  // promise to get all entrys from db and add them to an array, then merge to json obj
+  var infoArray = await new Promise((resolve, reject) => {
+    Document.find({} , (err, documents) => {
+      if(err) {
+        reject(err);
+        console.log("Error findng documents");
+      } else {
+        var documentInfo = [];
+        documents.map(document => {
+        
+        var docData = "{ year: " + document.year + ",month: " + document.month + ",institution: " + document.institution + ",id: " + document._id.toString() + "}";
+        documentInfo.push(docData);
+
+      })
+    
+      resolve(documentInfo);
+      }
+    })
+  });
+    
+  var data = "{ \"documentInfo\":\"" + JSON.stringify(infoArray).replace(/"/g,"") + "\"}";
+  var data = JSON.parse(data);
+  //console.log(data);
+
+  res.send(data);
+  
+});
+
+
+
+
+
+// receive specifications after sending pdf and return with id
+app.post('/dbEntry', (req, res) => {
+  var year = req.body.year;
+  var month = req.body.month;
+  var institution = req.body.institution;
+  var filePath = "files/Example.pdf";
+
+  // console.log(req.body);
+  if(req.body.hasOwnProperty('year') && req.body.hasOwnProperty('month') && req.body.hasOwnProperty('institution') && year != "" && month != "" && institution != ""){
+    makedbEntry(year, month, institution, filePath);
+    res.statusCode = 200;    
+  } else {
+    res.statusCode = 400;    
+  }
+  res.send();
+});
+
+
+function makedbEntry(yearvar, monthvar, institutionvar, filePathvar) {
+    var doc = new Document({
+      year: yearvar,
+      month: monthvar,
+      institution: institutionvar,
+      filePath: filePathvar
+    });
+    // var doc = new Document({
+    //   date: "02/2019",
+    //   institution: "tax office",
+    //   filePath: "files/example.pdf"
+    // });
+    doc.save(function(err, document){
+      if(err) {
+        console.log("Error adding to DB");
+      } else {
+        console.log("Successfully saved doc to db");
+      }
+      console.log(document);
+    });
+}
 
 
 

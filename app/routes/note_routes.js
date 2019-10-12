@@ -19,23 +19,48 @@ module.exports = function(app, db) {
               }
             res.send(data);
         })
+        
 
-        app.post('/document', (req, res) => {
-            var date = req.body.date;
-            var institution = req.body.institution;
 
-            console.log(date);
-            console.log(institution);
-            console.log(req.body);
+        // // receive pdf and specifications and return without file but with id
+        // app.post('/document', (req, res) => {
+        //     var date = req.body.date;
+        //     var institution = req.body.institution;
 
-            var data = {
-                    "id": 0,
-                    "date": date,
-                    "institution": institution
-            };
-            res.statusCode = 200;            
-            res.send(data);
-        });
+        //     console.log(date);
+        //     console.log(institution);
+        //     console.log(req.body);
+
+        //     var data = {
+        //             "id": 0,
+        //             "date": date,
+        //             "institution": institution
+        //     };
+        //     res.statusCode = 200;    
+
+        //     const filePath = './example.pdf';
+        //     const stream = fs.createReadStream(filePath);
+        //     res.writeHead(200, {
+        //         'Content-disposition': 'attachment; filename="' + encodeURIComponent(path.basename(filePath))  + '"',
+        //         'Content-type': 'application/pdf',
+        //         'Access-Control-Allow-Origin': '*',
+        //         'Access-Control-Allow-Methods': 'POST, GET'
+        //     });
+        //     stream.pipe(res);
+
+        //     res.send(data);
+        // });
+
+        // app.get("/test", (req, res) => {
+
+        //     res.writeHead(200, {
+        //         'Content-type': 'application/pdf',
+        //         'Access-Control-Allow-Origin': '*',
+        //         'Access-Control-Allow-Methods': 'POST, GET'
+        //     });
+
+        //     res.sendFile("/Users/leonfeldmann/Desktop/WebFileViewerProject/example.pdf");
+        // });
 
 
        
