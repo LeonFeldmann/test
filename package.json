@@ -8,9 +8,16 @@
     "start": "node app.js"
   },
   "dependencies": {
-    "express": "^4.13.3",
     "body-parser": "1.19.0",
+    "ejs": "^2.7.1",
+    "express": "^4.13.3",
+    "express-session": "^1.17.0",
     "fs": "0.0.1-security",
+    "mongodb": "^3.3.2",
+    "mongoose": "^5.7.4",
+    "passport": "^0.4.0",
+    "passport-local": "^1.0.0",
+    "passport-local-mongoose": "^5.0.1",
     "path": "0.12.7"
   },
   "repository": {
