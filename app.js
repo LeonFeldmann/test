@@ -139,7 +139,7 @@ app.get("/documents", async function (req, res) {
 
 
 // receive specifications after sending pdf and return with id
-app.post('/dbEntry', (req, res) => {
+app.post('/currentDocumentData', (req, res) => {
   var year = req.body.year;
   var month = req.body.month;
   var institution = req.body.institution;
