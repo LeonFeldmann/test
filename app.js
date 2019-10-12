@@ -37,9 +37,6 @@ passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
 
-// ==================
-//       routes
-// ==================
 
 app.get('/', (req, res) => res.render('homepage'));
 
@@ -97,7 +94,8 @@ res.send("This is content for logged users");
 });
 
 
-
+// Getting a PDF file from the server via HTTP POST (streaming version).
+//
 app.get('/document', function(req, res, next) {
 
   const filePath = './example.pdf';
@@ -106,31 +104,8 @@ app.get('/document', function(req, res, next) {
       'Content-disposition': 'attachment; filename="' + encodeURIComponent(path.basename(filePath))  + '"',
       'Content-type': 'application/pdf',
   });
-  res.send();
+  stream.pipe(res);
 });
-
-app.get('/document/:docId'), function(req, res) {
-
-  // filter db for doc with docId
-  // -> if found send doc
-  // -> if not found send empty obj?
-
-  res.send("This route is not implemented yet");
-}
-
-
-
-
-
-
-
-// catch 400
-app.use((err, req, res, next) => {
-    console.log(err.stack);
-    res.status(400).send(`Error: ${res.originUrl} not found`);
-    next();
-});
-
 
 
 require('./app/routes')(app, {});
