@@ -8,6 +8,7 @@ var express     = require('express'),
     passportLocalMongoose = require("passport-local-mongoose");
 var mongoose      = require("mongoose");
 var User          = require("./models/user");
+var document      = require("./models/document");
 
 var url = process.env.MONGODB_URI || "mongodb://localhost/data";
 mongoose.connect(url, {useNewUrlParser: true, useUnifiedTopology: true });
@@ -28,7 +29,7 @@ app.use(require("express-session")({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
-app.use(bodyParser.urlencoded({extended: true }));
+app.use(bodyParser.json({extended: true }));
 const port = process.env.PORT || 3000;
 
 passport.use(new LocalStrategy(User.authenticate()));
@@ -38,26 +39,22 @@ passport.deserializeUser(User.deserializeUser());
 
 
 
-app.get('/', (req, res) => res.render('homepage'));
 
+// ====================================================================
+app.get('/', (req, res) => res.render('homepage'));
 // login/logout
 app.get("/login", function(req, res){
 res.render("login");
 });
-
 app.post("/login", passport.authenticate("local", {
   successRedirect: "/logged",
   failureRedirect: "/login"
 }), function(req, res){
-
 });
-
 app.get("/logout", function(req, res){
   req.logOut();
   res.redirect("/");
 });
-
-
 //middelware: check login status, if not logged in redirect to /login
 function isLoggedIn(req, res, next){
   if(req.isAuthenticated()){
@@ -65,10 +62,6 @@ function isLoggedIn(req, res, next){
   }
   res.redirect("/login");
 }
-
-
-
-
 // show signup form
 app.get('/register', function(req, res){
   res.render("register");
@@ -87,11 +80,17 @@ app.post("/register", function(req, res){
     });
   });
 });
-
-
 app.get("/logged", isLoggedIn, function(req, res){
 res.send("This is content for logged users");
 });
+
+
+
+
+
+
+
+
 
 
 // Getting a PDF file from the server via HTTP POST (streaming version).
@@ -103,6 +102,8 @@ app.get('/document', function(req, res, next) {
   res.writeHead(200, {
       'Content-disposition': 'attachment; filename="' + encodeURIComponent(path.basename(filePath))  + '"',
       'Content-type': 'application/pdf',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, GET'
   });
   stream.pipe(res);
 });
