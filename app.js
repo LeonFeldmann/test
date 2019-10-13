@@ -116,7 +116,7 @@ app.get("/documents", async function (req, res) {
         var documentInfo = [];
         documents.map(document => {
         
-        var docData = "{ year: " + document.year + ",month: " + document.month + ",institution: " + document.institution + ",id: " + document._id.toString() + "}";
+        var docData = "{ year: " + document.year + ",month: " + document.month + ",institution: " + document.institution + ",importance: " + document.importance + ",description: " + document.description + ",id: " + document._id.toString() + "}";
         documentInfo.push(docData);
 
       })
@@ -129,12 +129,14 @@ app.get("/documents", async function (req, res) {
   var data = "{ \"documentInfo\":\"" + JSON.stringify(infoArray).replace(/"/g,"") + "\"}";
   var data = JSON.parse(data);
   //console.log(data);
+  
+  res.statusCode = 200;
+  res.setHeader('Access-Control-Allow-Origin',"*");
+  res.setHeader('Access-Control-Allow-Methods',"POST, GET");
 
   res.send(data);
   
 });
-
-
 
 
 
@@ -143,31 +145,40 @@ app.post('/currentDocumentData', (req, res) => {
   var year = req.body.year;
   var month = req.body.month;
   var institution = req.body.institution;
+  var importance = req.body.importance;
+  var description = req.body.description;
   var filePath = "files/Example.pdf";
 
   // console.log(req.body);
-  if(req.body.hasOwnProperty('year') && req.body.hasOwnProperty('month') && req.body.hasOwnProperty('institution') && year != "" && month != "" && institution != ""){
-    makedbEntry(year, month, institution, filePath);
-    res.statusCode = 200;    
+  if(req.body.hasOwnProperty('year') && req.body.hasOwnProperty('month') && req.body.hasOwnProperty('institution') && req.body.hasOwnProperty('importance') && req.body.hasOwnProperty('description')){
+    if(year != null && month != null && institution != "" && importance != null)
+    {
+      makedbEntry(year, month, institution, importance, description, filePath);
+      res.writeHead(200, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET'
+    }); 
+    } else {
+      res.statusCode = 400;    
+    }
   } else {
     res.statusCode = 400;    
   }
+ 
   res.send();
 });
 
 
-function makedbEntry(yearvar, monthvar, institutionvar, filePathvar) {
+function makedbEntry(yearvar, monthvar, institutionvar, importancevar, descriptionvar, filePathvar) {
     var doc = new Document({
       year: yearvar,
       month: monthvar,
       institution: institutionvar,
+      importance: importancevar,
+      description: descriptionvar,
       filePath: filePathvar
     });
-    // var doc = new Document({
-    //   date: "02/2019",
-    //   institution: "tax office",
-    //   filePath: "files/example.pdf"
-    // });
+   
     doc.save(function(err, document){
       if(err) {
         console.log("Error adding to DB");

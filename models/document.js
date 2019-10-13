@@ -2,9 +2,11 @@ var mongoose = require("mongoose");
 
 
 var DocumentSchema = new mongoose.Schema({
-    year: String,
-    month: String,
+    year: Number,
+    month: Number,
     institution: String,
+    importance: Number,
+    description: String,
     filePath: String
 });
 
