@@ -15,7 +15,7 @@ const db = mongoose.connection;
 mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', () => {
-  console.log('we\'re connected!');
+  console.log('we\'re connected!'); // undefined
 });
 
 
@@ -83,7 +83,7 @@ app.get('/documents', async (req, res) => {
           // eslint-disable-next-line max-len
           // const docData = '{ \'year\' : ' + document.year + ', \'month\' : ' + document.month + ', \'institution\' : \'' + document.institution + '\', \'importance\' : ' + document.importance + ', \'description\' : \'' + document.description + '\',\'id\' : \'' + document._id.toString() + '\'}';
           // eslint-disable-next-line no-underscore-dangle
-          const docData = `{ 'year' : ${document.year}, 'month' : ${document.month}, 'institution' : '${document.institution}', 'importance' : ${document.importance}, 'description' : '${document.description}','id' : '${document._id.toString()}'}`;
+          const docData = `{ "year" : "${document.year}", "month" : "${document.month}", "institution" : "${document.institution}", "importance" : "${document.importance}", "description" : "${document.description}","id" : "${document._id.toString()}"}`;
           documentInfo.push(docData);
         });
 
@@ -92,9 +92,10 @@ app.get('/documents', async (req, res) => {
     });
   });
     // .replace(/'/g,'')
-  let data = '{ \'documentInfo\': [';
+  let data = '{ "documentInfo": [';
   let comma = '';
-  for (let i = 0; i < infoArray.length; i + 1) {
+  console.log(infoArray.length);
+  for (let i = 0; i < infoArray.length; i++) {
     if (i > 0) {
       comma = ',';
     }
@@ -103,7 +104,7 @@ app.get('/documents', async (req, res) => {
   data += ']}';
 
   const body = JSON.parse(data);
-  // console.log(data);
+  //console.log(data);
 
   res.statusCode = 200;
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -133,7 +134,7 @@ function makedbEntry(yearvar, monthvar, institutionvar, importancevar, descripti
   });
 }
 
-// receive specifications after sending pdf and return with id
+// receive specifications after sending pdf
 app.post('/currentDocumentData', (req, res) => {
   const { year } = req.body;
   const { month } = req.body;
@@ -142,7 +143,6 @@ app.post('/currentDocumentData', (req, res) => {
   const { description } = req.body;
   const filePath = './files/otherExample.pdf';
 
-  // console.log(req.body);
   // eslint-disable-next-line no-prototype-builtins
   if (req.body.hasOwnProperty('year') && req.body.hasOwnProperty('month') && req.body.hasOwnProperty('institution') && req.body.hasOwnProperty('importance') && req.body.hasOwnProperty('description')) {
     if (year != null && month != null && institution !== '' && importance != null) {
@@ -157,13 +157,11 @@ app.post('/currentDocumentData', (req, res) => {
   } else {
     res.statusCode = 400;
   }
-
   res.send();
 });
 
 
 // Getting a PDF file from the server via HTTP POST (streaming version).
-//
 app.get('/document', (req, res) => {
   const filePath = './example.pdf';
   const stream = fs.createReadStream(filePath);
