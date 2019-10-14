@@ -29,5 +29,10 @@
   "bugs": {
     "url": "https://github.com/LeonFeldmann/WebFileViewerProject/issues"
   },
-  "homepage": "https://github.com/LeonFeldmann/WebFileViewerProject#readme"
+  "homepage": "https://github.com/LeonFeldmann/WebFileViewerProject#readme",
+  "devDependencies": {
+    "eslint": "^6.5.1",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2"
+  }
 }
