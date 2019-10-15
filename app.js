@@ -2,13 +2,18 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
-const passport = require('passport');
 // eslint-disable-next-line no-unused-vars
 const mongo = require('mongodb').MongoClient;
-const LocalStrategy = require('passport-local');
 const mongoose = require('mongoose');
-const User = require('./models/user');
+// eslint-disable-next-line no-unused-vars
+// const UserSchema = require('./models/user');
+const Schemata = require('./models/user');
 const Document = require('./models/document');
+const User = mongoose.model('user', Schemata.User);
+const jwt = require('jsonwebtoken');
+
+const app = express();
+
 
 const url = process.env.MONGODB_URI || 'mongodb://localhost/data';
 const db = mongoose.connection;
@@ -19,26 +24,94 @@ db.once('open', () => {
 });
 
 
-const app = express();
+const cors = require('cors');
+if (process.env.PORT) {
+  app.use(cors({
+    origin: process.env.PORT
+  }));
+} else {
+  app.use(cors({
+    origin: 'http://localhost:3000'
+  }));
+}
+
+
 app.use(require('express-session')({
   secret: 'Anything at all',
   resave: false,
   saveUninitialized: false,
 }));
 
-app.use(passport.initialize());
-app.use(passport.session());
+
 app.use(bodyParser.json({ extended: true }));
 const port = process.env.PORT || 3000;
 
-passport.use(new LocalStrategy(User.authenticate()));
-// reads and en/decodes the session
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+
+// eslint-disable-next-line consistent-return
+function validateToken(req, res, next) {
+  const token = req.headers['x-access-token'];
+  if (!token) return res.status(401).send({ auth: false, message: 'No token provided' });
+  // eslint-disable-next-line consistent-return
+  jwt.verify(token, 'secret', (err, decoded) => {
+    if (err) return res.status(500).send({ auth: false, message: 'Failed to authenticate token' });
+
+    // eslint-disable-next-line consistent-return
+    User.findById(decoded.userID, (error, user) => {
+      if (error) return res.status(500).send('There was a problem finding the user.');
+      if (!user) return res.status(404).send('No user found.');
+      res.locals.user = user;
+      next();
+    });
+  });
+}
+
+app.post('/register', (req, res) => {
+  const newUser = new User({
+    email: req.body.email,
+    username: req.body.username,
+    password: User.hashPassword(req.body.password),
+    todos: {},
+    documents: {},
+    lastLoggedIn: new Date(),
+  });
+  const promise = newUser.save();
+  console.log(newUser);
+
+  promise.then((doc) => res.status(201).json(doc));
+  promise.catch((err) => res.status(501).json({ message: 'Error registering user.', error: err }));
+});
+
+
+app.post('/login', async (req, res) => {
+  const promise = User.findOne({ username: req.body.username }).exec();
+  promise.then((user) => {
+    if (user && user.isValid(req.body.password, user.password)) {
+      console.log('Valid password');
+      const token = jwt.sign({ userID: user._id }, 'secret', { expiresIn: '3h' });
+      console.log(token);
+      return res.status(200).json({
+        "loginStatus": "true",
+        "token": token,
+      });
+    // eslint-disable-next-line no-else-return
+    } else {
+      res.status(501).json({
+        "loginStatus": "false",
+        "token": ""
+      });
+    }
+  });
+  promise.catch(() => {
+    return res.status(501).json({
+      "loginStatus": "false",
+      "token": ""
+    });
+  });
+});
 
 
 // send pdf matching the id
-app.get('/documentPDF/:id', (req, res) => {
+app.get('/documentPDF/:id', validateToken, (req, res) => {
   const { id } = req.params;
   Document.findById(id, 'filePath', (err, document) => {
     if (err) {
@@ -58,18 +131,19 @@ app.get('/documentPDF/:id', (req, res) => {
   });
 });
 
-app.get('/importDocuments', (req, res) => {
+app.get('/importDocuments', validateToken, (req, res) => {
   const dir = './newFiles';
   fs.readdir(dir, (err, files) => {
     //  console.log(files.length);
-    const body = `{ 'numberOfFiles' : '${files.length}'}`;
+    const body = `{ "numberOfFiles" : "${files.length}"}`;
     res.send(JSON.parse(body));
   });
 });
 
 
 // send specs of all documents
-app.get('/documents', async (req, res) => {
+app.get('/documents', validateToken, async (req, res) => {
+  console.log(res.locals.user);
   // promise to get all entrys from db and add them to an array, then merge to json obj
   const infoArray = await new Promise((resolve, reject) => {
     Document.find({}, (err, documents) => {
@@ -80,8 +154,6 @@ app.get('/documents', async (req, res) => {
         const documentInfo = [];
         // eslint-disable-next-line array-callback-return
         documents.map((document) => {
-          // eslint-disable-next-line max-len
-          // const docData = '{ \'year\' : ' + document.year + ', \'month\' : ' + document.month + ', \'institution\' : \'' + document.institution + '\', \'importance\' : ' + document.importance + ', \'description\' : \'' + document.description + '\',\'id\' : \'' + document._id.toString() + '\'}';
           // eslint-disable-next-line no-underscore-dangle
           const docData = `{ "year" : "${document.year}", "month" : "${document.month}", "institution" : "${document.institution}", "importance" : "${document.importance}", "description" : "${document.description}","id" : "${document._id.toString()}"}`;
           documentInfo.push(docData);
@@ -104,7 +176,7 @@ app.get('/documents', async (req, res) => {
   data += ']}';
 
   const body = JSON.parse(data);
-  //console.log(data);
+  // console.log(data);
 
   res.statusCode = 200;
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -135,7 +207,7 @@ function makedbEntry(yearvar, monthvar, institutionvar, importancevar, descripti
 }
 
 // receive specifications after sending pdf
-app.post('/currentDocumentData', (req, res) => {
+app.post('/currentDocumentData', validateToken, (req, res) => {
   const { year } = req.body;
   const { month } = req.body;
   const { institution } = req.body;
@@ -162,7 +234,7 @@ app.post('/currentDocumentData', (req, res) => {
 
 
 // Getting a PDF file from the server via HTTP POST (streaming version).
-app.get('/document', (req, res) => {
+app.get('/document', validateToken, (req, res) => {
   const filePath = './example.pdf';
   const stream = fs.createReadStream(filePath);
   res.writeHead(200, {
