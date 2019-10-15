@@ -25,15 +25,16 @@ db.once('open', () => {
 
 
 const cors = require('cors');
-if (process.env.PORT) {
-  app.use(cors({
-    origin: process.env.PORT
-  }));
-} else {
-  app.use(cors({
-    origin: 'http://localhost:3000'
-  }));
-}
+app.use(cors());
+// if (process.env.PORT) {
+//   app.use(cors({
+//     origin: process.env.PORT
+//   }));
+// } else {
+//   app.use(cors({
+//     origin: 'http://localhost:3000'
+//   }));
+// }
 
 
 app.use(require('express-session')({
