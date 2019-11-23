@@ -8,6 +8,7 @@ const DocumentSchema = new mongoose.Schema({
   importance: Number,
   description: String,
   filePath: String,
+  title: String,
 });
 
 module.exports = mongoose.model('Document', DocumentSchema);
