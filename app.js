@@ -94,12 +94,24 @@ function checkBodyForValidAttributes(req, res, next, attributes) {
   }
 }
 
-app.get('/test', (req, res) => {
+app.post('/test', (req, res, next) => checkUsernameAndEmail(req, res, next), (req, res) => {
   // console.log(checkBodyForValidAttributes(req.body, ["number", "text", "extra"]));
   // res.send();
   // console.log("This still got executed");
   // return;
-  const stream = fs.createReadStream("files/jojo/2006-4-court.pdf");
+//   let result = await checkAttributeForUniqueness({ "username": req.body.username});
+//   console.log("Delay? : " + result);
+//  if (!checkAttributeForUniqueness({ "username": req.body.username})) {
+//     res.status(400).json({ "error": "This username already exists in the database"});
+//     res.send();
+//     return;
+//   } else if (!checkAttributeForUniqueness({ "email": req.body.email})) { 
+//     res.status(400).json({ "error": "This email address already exists in the database"});
+//     res.send();
+//     return;
+//   }
+console.log("Success");
+  res.send(200);
 
 });
 
@@ -127,28 +139,32 @@ function validateToken(req, res, next) {
   });
 }
 
-function checkAttributeForUniqueness(query) {
-  User.findOne(query).then((result) => {
-    if (result) {
-      return false;
+
+function checkUsernameAndEmail(req, res, next) {
+  //console.log(req.body);
+  let queryUsername = { "username": req.body.username };
+  User.findOne(queryUsername).then((result) => {
+    //console.log("THis is the result: " + result);
+    if (result == null) {
+      let queryEmail = { "email": req.body.email };
+      User.findOne(queryEmail).then((result) => {
+      //console.log("THis is the result: " + result);
+        if (result == null) {
+          next();
+        } else {
+          res.status(400).json({ "error": "This email address already exists in the database"});
+          res.send();
+        }
+      });
     } else {
-      return true;
+      res.status(400).json({ "error": "This username already exists in the database"});
+      res.send();
     }
   });
 }
 
 
-app.post('/register', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['email', 'username', 'password']), (req, res) => {
-
-  // if (!checkAttributeForUniqueness({ "username": req.body.username})) {
-  //   res.status(400).json({ "error": "This username already exists in the database"});
-  //   res.send();
-  //   return;
-  // } else if (!checkAttributeForUniqueness({ "email": req.body.email})) { 
-  //   res.status(400).json({ "error": "This email address already exists in the database"});
-  //   res.send();
-  //   return;
-  // }
+app.post('/register', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['email', 'username', 'password']), (req, res, next) => checkUsernameAndEmail(req, res, next), (req, res) => {
 
 
   console.log("This should not get printed");
@@ -173,45 +189,43 @@ app.post('/register', (req, res, next) => checkBodyForValidAttributes(req, res, 
 });
 
 
-app.post('/login', async (req, res) => {
-  let identifier;
-  if (req.body.hasOwnProperty('username') && req.body.username !== '') {
-    // eslint-disable-next-line quotes
-    identifier = {"username": req.body.username};
-  } else if (req.body.hasOwnProperty('email') && req.body.email !== '') {
-    identifier = { "email": req.body.email };
-  } else {
-    res.status(401).json({ "error": "You must provide either a vaild username or emailaddress"});
-  }
-  const promise = User.findOne(identifier).exec();
+app.post('/login', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['userIdentifier', 'password']), async (req, res) => {
 
-  promise.then((user) => {
-    console.log(user);
-    if (user && user.isValid(req.body.password, user.password)) {
-      console.log('Valid password');
-      const token = jwt.sign({ userID: user._id }, 'secret', { expiresIn: '3h' });
-      console.log(token);
-      return res.status(200).json({
-        "loginStatus": "true",
-        "token": token,
-      });
-    // eslint-disable-next-line no-else-return
-    } else {
+    var firstQuery = await User.findOne({"username": req.body.userIdentifier}).exec();
+    var secondQuery = await User.findOne({"email": req.body.userIdentifier}).exec();
+    // console.log(firstQuery);
+    // console.log(secondQuery);
+  
+     if (firstQuery && secondQuery == null && firstQuery.isValid(req.body.password, firstQuery.password)) {
+        console.log('Valid password');
+        const token = jwt.sign({ userID: firstQuery._id }, 'secret', { expiresIn: '3h' });
+        //console.log(token);
+         res.status(200).json({
+          "loginStatus": "true",
+          "token": token,
+        });
+     } else if (firstQuery == null && secondQuery && secondQuery.isValid(req.body.password, secondQuery.password)) {
+        console.log('Valid password');
+        const token = jwt.sign({ userID: secondQuery._id }, 'secret', { expiresIn: '3h' });
+        //console.log(token);
+         res.status(200).json({
+          "loginStatus": "true",
+          "token": token,
+        });
+     } else if (firstQuery !== null && secondQuery !== null) {
       res.status(404).json({
         "loginStatus": "false",
         "token": "",
-        "error": "Login credentials wrong"
-
+        "error": "Please provide a unique identifier/use the other one"
       });
-    }
-  });
-  promise.catch(() => {
-    return res.status(404).json({
-      "loginStatus": "false",
-      "token": "",
-      "error": "Username not associated with an existing user"
-    });
-  });
+     } else {
+      res.status(404).json({
+        "loginStatus": "false",
+        "token": "",
+        "error": "Credentials not associated with an existing user"
+      });
+     }
+     res.send();
 });
 
 
@@ -315,6 +329,7 @@ function makedbEntry(user, yearvar, monthvar, institutionvar, importancevar, des
   });
 }
 
+let generatedFilename;
 
 /**
  * This function creates a unique filename by concatenating document metainformation
@@ -324,11 +339,13 @@ function makedbEntry(user, yearvar, monthvar, institutionvar, importancevar, des
  * @param  {string} filePrefix
  * @param  {string} destinationDirectory
  */
-function createFilenameAndCopyFile(filePrefix, destinationDirectory) {
+function generateFilenameAndCopyFile(filePrefix, destinationDirectory) {
   fs.readdir(destinationDirectory, (err, files) => {
-    if (err) {return false;}
+    if (err) {
+      console.log(err);
+      return false;
+    }
     console.log(files);
-
     let newFilename = filePrefix + '.pdf';
     let foundDuplicate = false;
     for(let a = 0; a < 1000; a++) {
@@ -339,9 +356,9 @@ function createFilenameAndCopyFile(filePrefix, destinationDirectory) {
       }
       // eslint-disable-next-line no-loop-func
       files.forEach(filename => {
-        console.log('Comparing ' + filename + ' to ' + newFilename);
+        //console.log('Comparing ' + filename + ' to ' + newFilename);
         if (filename === newFilename) {
-          console.log('duplicate found');
+          //console.log('duplicate found');
           foundDuplicate = true;
         }
       });
@@ -349,35 +366,46 @@ function createFilenameAndCopyFile(filePrefix, destinationDirectory) {
         break;
       }
     }
-    console.log(newFilename);
-    fs.copyFile('newFiles/ProblemSheet01.pdf', destinationDirectory + newFilename, (error) => {
 
-      if (error) {
-        console.log(err);
-        return false;
-      } else {
-        console.log('Success');
-        console.log(destinationDirectory + newFilename);
-        return destinationDirectory + newFilename;
-      }
+
+    //console.log(newFilename);
+    fs.copyFile('newFiles/ProblemSheet01.pdf', destinationDirectory + newFilename, (error) => {
+      return new Promise((resolve, reject) => {
+        if (error) {
+          console.log(err);
+          generatedFilename = false;
+          reject(false);
+        } else {
+          //console.log('Success');
+          //console.log(destinationDirectory + newFilename);
+          generatedFilename = destinationDirectory + newFilename;
+          resolve(destinationDirectory + newFilename);
+        }
+      });
     });
 });
 }
 
 
 // receive specifications after sending pdf
-app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['year', 'month', 'institution', 'importance']), validateToken, (req, res) => {
+app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['year', 'month', 'institution', 'importance']), validateToken, async (req, res) => {
   const { year } = req.body;
   const { month } = req.body;
   const { institution } = req.body;
   const { importance } = req.body;
   const { description } = req.body;
   const { title } = req.body;
-  const dirPath = './files/' + res.locals.user.username + '/';
+  //const dirPath = '/files/' + res.locals.user.username + '/';
+  const dirPath = './files/joja/';
+
   const filePrefix = year + '-' + month + '-' + institution;
-  //const filePath = createFilenameAndCopyFile(filePrefix, dirPath);
-  const filePath = 'files/jojo/' + filePrefix + '.pdf';
+  const otherFilepath = await generateFilenameAndCopyFile(filePrefix, dirPath);
+  const filePath = generatedFilename;
+  //console.log(generatedFilename);
+  //const filePath = 'files/joja/' + filePrefix + '.pdf';
+
   console.log(filePath);
+  //setTimeout(function(){ console.log(generatedFilename); }, 3000);
   // if (filePath) {
   //   res.status(500).json({ "error": "Error while moving the file"});
   //   res.send();
@@ -385,19 +413,19 @@ app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes
   // }
 
   // eslint-disable-next-line no-prototype-builtins
-  if (req.body.hasOwnProperty('year') && req.body.hasOwnProperty('month') && req.body.hasOwnProperty('institution') && req.body.hasOwnProperty('importance') && req.body.hasOwnProperty('description')) {
-    if (year != null && month != null && institution !== '' && importance != null) {
-      makedbEntry(res.locals.user, year, month, institution, importance, description, title, filePath);
-      res.writeHead(200, {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, GET',
-      });
-    } else {
-      res.status(400).json({ "error": "Mandatory attributes must be non-null or non-empty"});
-    }
-  } else {
-    res.status(400).json({ "error": "Request does not have the specified attributes"});
-  }
+  // if (req.body.hasOwnProperty('year') && req.body.hasOwnProperty('month') && req.body.hasOwnProperty('institution') && req.body.hasOwnProperty('importance') && req.body.hasOwnProperty('description')) {
+  //   if (year != null && month != null && institution !== '' && importance != null) {
+  //     makedbEntry(res.locals.user, year, month, institution, importance, description, title, filePath);
+  //     res.writeHead(200, {
+  //       'Access-Control-Allow-Origin': '*',
+  //       'Access-Control-Allow-Methods': 'POST, GET',
+  //     });
+  //   } else {
+  //     res.status(400).json({ "error": "Mandatory attributes must be non-null or non-empty"});
+  //   }
+  // } else {
+  //   res.status(400).json({ "error": "Request does not have the specified attributes"});
+  // }
   res.send();
 });
 
