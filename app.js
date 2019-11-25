@@ -166,8 +166,6 @@ function checkUsernameAndEmail(req, res, next) {
 
 app.post('/register', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['email', 'username', 'password']), (req, res, next) => checkUsernameAndEmail(req, res, next), (req, res) => {
 
-
-  console.log("This should not get printed");
   const newUser = new User({
     email: req.body.email,
     username: req.body.username,
@@ -187,7 +185,6 @@ app.post('/register', (req, res, next) => checkBodyForValidAttributes(req, res, 
   });
   promise.catch((err) => res.status(500).json({ message: 'Error registering user.', error: err }));
 });
-
 
 app.post('/login', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['userIdentifier', 'password']), async (req, res) => {
 
@@ -228,7 +225,6 @@ app.post('/login', (req, res, next) => checkBodyForValidAttributes(req, res, nex
      res.send();
 });
 
-
 // send pdf matching the id
 app.get('/documentPDF/:id', validateToken, (req, res) => {
   const { id } = req.params;
@@ -248,7 +244,6 @@ app.get('/documentPDF/:id', validateToken, (req, res) => {
     }
   });
 });
-
 
 // send specs of all documents
 app.get('/documents', validateToken, async (req, res) => {
@@ -295,7 +290,6 @@ app.get('/documents', validateToken, async (req, res) => {
   res.send(body);
 });
 
-
 // eslint-disable-next-line max-len
 /**
  * @param  {} user
@@ -307,6 +301,7 @@ app.get('/documents', validateToken, async (req, res) => {
  * @param  {} filePathvar
  */
 function makedbEntry(user, yearvar, monthvar, institutionvar, importancevar, descriptionvar, titlevar, filePathvar) {
+  console.log("in function");
   const doc = new Document({
     year: yearvar,
     month: monthvar,
@@ -328,8 +323,6 @@ function makedbEntry(user, yearvar, monthvar, institutionvar, importancevar, des
     console.log(document);
   });
 }
-
-let generatedFilename;
 
 /**
  * This function creates a unique filename by concatenating document metainformation
@@ -386,6 +379,8 @@ function generateFilenameAndCopyFile(filePrefix, destinationDirectory) {
 });
 }
 
+let currentFile = null;
+let currentFileCount = 6;
 
 // receive specifications after sending pdf
 app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['year', 'month', 'institution', 'importance']), validateToken, async (req, res) => {
@@ -395,47 +390,135 @@ app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes
   const { importance } = req.body;
   const { description } = req.body;
   const { title } = req.body;
-  //const dirPath = '/files/' + res.locals.user.username + '/';
-  const dirPath = './files/joja/';
+  const dirPath = './files/' + res.locals.user.username + '/';
+  //const dirPath = './files/joja/';
+  const filePrefix = year + '-' + month + '-' + institution + '-' + title;
 
-  const filePrefix = year + '-' + month + '-' + institution;
-  const otherFilepath = await generateFilenameAndCopyFile(filePrefix, dirPath);
-  const filePath = generatedFilename;
-  //console.log(generatedFilename);
-  //const filePath = 'files/joja/' + filePrefix + '.pdf';
 
-  console.log(filePath);
-  //setTimeout(function(){ console.log(generatedFilename); }, 3000);
-  // if (filePath) {
-  //   res.status(500).json({ "error": "Error while moving the file"});
-  //   res.send();
-  //   return;
-  // }
+  fs.readdir(dirPath, (err, files) => {
+      if (err) {
+        console.log(err);
+    
+      } else {
+        //console.log(files);
+        let newFilename = filePrefix + '.pdf';
+        let foundDuplicate = false;
+        for(let a = 0; a < 1000; a++) {
+          foundDuplicate = false;
+          //newFilename = filePrefix + '.pdf';
+          if(a > 0) {
+            newFilename = filePrefix + a + '.pdf';
+          }
+          // eslint-disable-next-line no-loop-func
+          files.forEach(filename => {
+            //console.log('Comparing ' + filename + ' to ' + newFilename);
+            if (filename === newFilename) {
+              //console.log('duplicate found');
+              foundDuplicate = true;
+            }
+          });
+          if (!foundDuplicate) {
+            break;
+          }
+        }
+        let generatedFilename = dirPath + newFilename;
+        let newFilesDir = "./newFiles";
+        console.log("Generated filename: " + generatedFilename);
 
-  // eslint-disable-next-line no-prototype-builtins
-  // if (req.body.hasOwnProperty('year') && req.body.hasOwnProperty('month') && req.body.hasOwnProperty('institution') && req.body.hasOwnProperty('importance') && req.body.hasOwnProperty('description')) {
-  //   if (year != null && month != null && institution !== '' && importance != null) {
-  //     makedbEntry(res.locals.user, year, month, institution, importance, description, title, filePath);
-  //     res.writeHead(200, {
-  //       'Access-Control-Allow-Origin': '*',
-  //       'Access-Control-Allow-Methods': 'POST, GET',
-  //     });
-  //   } else {
-  //     res.status(400).json({ "error": "Mandatory attributes must be non-null or non-empty"});
-  //   }
-  // } else {
-  //   res.status(400).json({ "error": "Request does not have the specified attributes"});
-  // }
-  res.send();
+        if (currentFile !== null) {
+          fs.copyFile(newFilesDir + "/" + currentFile, generatedFilename, (error) => {  
+            if (error) {
+              console.log(err);
+              res.status(500).json({ "error": "Error while moving the file"});
+            } else {
+              console.log('Success');
+              //console.log(destinationDirectory + newFilename);
+            }
+          });
+        }
+      
+              if (currentFileCount !== 0) {
+                makedbEntry(res.locals.user, year, month, institution, importance, description, title, generatedFilename.substr(2));
+              }
+
+              // delete old file
+                console.log("Currentfile is: " + currentFile);
+                 if(currentFile !== null) {
+                //   fs.unlink(newFilesDir + "/" + currentFile);
+                 }
+                 if (currentFileCount !== 0) {
+                  currentFileCount --;
+                  console.log("New file count is: " + currentFileCount);
+                 }
+
+
+                // send next file
+                fs.readdir(newFilesDir, (err, files) => {
+                  // console.log("Reading ./newFiles");
+                  // console.log(files.length);
+                  if(err) {
+                    console.log(err);
+                  } else if (files.length == 0 || currentFileCount == 0) {
+                    res.status(200).json({ "fileCount": 0});
+                    currentFile = null;
+                  } else {
+                    //console.log(files[0]);
+                    let index = 6 - currentFileCount;
+                    let fileToSend = newFilesDir + '/' + files[index];
+                    const stream = fs.createReadStream(fileToSend);
+                    res.writeHead(200, {
+                      'Content-disposition': `attachment; filename='${encodeURIComponent(path.basename(fileToSend))}'`,
+                      'Content-type': 'application/pdf',
+                      'Access-Control-Allow-Origin': '*',
+                      'Access-Control-Allow-Methods': 'POST, GET',
+                      'fileCount': files.length,
+                    });
+                     stream.pipe(res);
+                     currentFile = files[index];
+                     console.log("new Currentfile is: " + currentFile);
+
+                  }
+                });
+              }
+    });
+  
 });
 
+
 app.get('/importDocuments', validateToken, (req, res) => {
-  const dir = './newFiles';
-  fs.readdir(dir, (err, files) => {
-    //  console.log(files.length);
-    const body = `{ "numberOfFiles" : "${files.length}"}`;
-    res.send(JSON.parse(body));
-  });
+  const newFilesDir = './newFiles';
+      // send next file
+      fs.readdir(newFilesDir, (err, files) => {
+        if(err) {
+          console.log(err);
+        } else if (files.length == 0) {
+          res.status(200).json({ "fileCount": 0});
+          currentFile = null;
+        } else {
+          console.log(files[0]);
+          let fileToSend = newFilesDir + '/' + files[0];
+          const stream = fs.createReadStream(fileToSend);
+          res.writeHead(200, {
+            'Content-disposition': `attachment; filename='${encodeURIComponent(path.basename(fileToSend))}'`,
+            'Content-type': 'application/pdf',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, GET',
+            'fileCount': files.length,
+          });
+           stream.pipe(res);
+           currentFile = files[0]
+           console.log("new Currentfile is: " + currentFile);
+           currentFileCount = 6;
+           console.log("File count was reset to: " + currentFileCount);
+        }
+      });
+
+  // fs.readdir(dir, (err, files) => {
+  //   //  console.log(files.length);
+  //   const body = `{ "numberOfFiles" : "${files.length}"}`;
+  //   res.send(JSON.parse(body));
+  // });
+
 });
 
 
