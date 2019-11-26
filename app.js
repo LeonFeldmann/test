@@ -33,7 +33,7 @@ app.use(cors());
 //   }));
 // }
 
-
+createFilesFolder();
 app.use(require('express-session')({
   secret: 'Anything at all',
   resave: false,
@@ -128,7 +128,16 @@ app.post('/test', (req, res) => {
     });
   
 
-
+function createFilesFolder() {
+  if (fs.existsSync('./files/')) {
+    console.log("Files folder aready existing");
+} else {
+  fs.mkdir('./files/', { recursive: true }, (err) => {
+    if (err) console.log(err);
+  });
+  console.log("Files folder created");
+}
+}
 
 
 
