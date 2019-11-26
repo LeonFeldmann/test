@@ -128,13 +128,15 @@ function validateToken(req, res, next) {
 
 function checkUsernameAndEmail(req, res, next) {
   //console.log(req.body);
-  let queryUsername = { "username": "/^" + req.body.username + "$/i" };
+  let usernameR = new RegExp(["^", req.body.username, "$"].join(""), "i");
+  let queryUsername = { "username": usernameR };
   User.findOne(queryUsername).then((result) => {
-    console.log("This is the result: " + result);
+    console.log("This is the result for username: " + result);
     if (result == null) {
-      let queryEmail = { "email": req.body.email };
+      let emailR = new RegExp(["^", req.body.email, "$"].join(""), "i");
+      let queryEmail = { "email": emailR };
       User.findOne(queryEmail).then((result) => {
-      //console.log("This is the result: " + result);
+      console.log("This is the result for email: " + result);
         if (result == null) {
           next();
         } else {
@@ -446,7 +448,12 @@ app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes
                   if(err) {
                     console.log(err);
                   } else if (files.length == 0 || currentFileCount == 0) {
-                    res.status(200).json({ "fileCount": 0});
+                    res.writeHead(200, {
+                      'Access-Control-Allow-Origin': '*',
+                      'Access-Control-Allow-Methods': 'POST, GET',
+                      'fileCount': 0,
+                      'Access-Control-Expose-Headers': '*',
+                    });
                     currentFile = null;
                   } else {
                     //console.log(files[0]);
@@ -507,12 +514,6 @@ app.get('/importDocuments', validateToken, (req, res) => {
            console.log("File count was reset to: " + currentFileCount);
         }
       });
-
-  // fs.readdir(dir, (err, files) => {
-  //   //  console.log(files.length);
-  //   const body = `{ "numberOfFiles" : "${files.length}"}`;
-  //   res.send(JSON.parse(body));
-  // });
 
 });
 
