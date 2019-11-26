@@ -95,21 +95,7 @@ function checkBodyForValidAttributes(req, res, next, attributes) {
 }
 
 app.post('/test', (req, res, next) => checkUsernameAndEmail(req, res, next), (req, res) => {
-  // console.log(checkBodyForValidAttributes(req.body, ["number", "text", "extra"]));
-  // res.send();
-  // console.log("This still got executed");
-  // return;
-//   let result = await checkAttributeForUniqueness({ "username": req.body.username});
-//   console.log("Delay? : " + result);
-//  if (!checkAttributeForUniqueness({ "username": req.body.username})) {
-//     res.status(400).json({ "error": "This username already exists in the database"});
-//     res.send();
-//     return;
-//   } else if (!checkAttributeForUniqueness({ "email": req.body.email})) { 
-//     res.status(400).json({ "error": "This email address already exists in the database"});
-//     res.send();
-//     return;
-//   }
+
 console.log("Success");
   res.send(200);
 
@@ -142,13 +128,13 @@ function validateToken(req, res, next) {
 
 function checkUsernameAndEmail(req, res, next) {
   //console.log(req.body);
-  let queryUsername = { "username": req.body.username };
+  let queryUsername = { "username": "/^" + req.body.username + "$/i" };
   User.findOne(queryUsername).then((result) => {
-    //console.log("THis is the result: " + result);
+    console.log("This is the result: " + result);
     if (result == null) {
       let queryEmail = { "email": req.body.email };
       User.findOne(queryEmail).then((result) => {
-      //console.log("THis is the result: " + result);
+      //console.log("This is the result: " + result);
         if (result == null) {
           next();
         } else {
@@ -473,6 +459,7 @@ app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes
                       'Access-Control-Allow-Origin': '*',
                       'Access-Control-Allow-Methods': 'POST, GET',
                       'fileCount': files.length,
+                      'Access-Control-Expose-Headers': '*',
                     });
                      stream.pipe(res);
                      currentFile = files[index];
@@ -493,7 +480,13 @@ app.get('/importDocuments', validateToken, (req, res) => {
         if(err) {
           console.log(err);
         } else if (files.length == 0) {
-          res.status(200).json({ "fileCount": 0});
+          res.writeHead(200, {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, GET',
+            'Access-Control-Expose-Headers': '*',
+            'fileCount': 0,
+          });
+
           currentFile = null;
         } else {
           console.log(files[0]);
@@ -505,6 +498,7 @@ app.get('/importDocuments', validateToken, (req, res) => {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'POST, GET',
             'fileCount': files.length,
+            'Access-Control-Expose-Headers': '*',
           });
            stream.pipe(res);
            currentFile = files[0]
