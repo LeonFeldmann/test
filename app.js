@@ -96,7 +96,7 @@ app.get('/reset',(req, res, next) => checkBodyForValidAttributes(req, res, next,
 });
 
 app.post('/test', (req, res) => {
-  let dir = './files/';
+  let dir = './';
   fs.readdir(dir, (err, files) => {
     if (err) {
       console.log(err);
