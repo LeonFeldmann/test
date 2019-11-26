@@ -107,6 +107,18 @@ app.post('/test', (req, res) => {
     }
   });
 
+  app.post('/testAll', (req, res) => {
+    let dir = './';
+    fs.readdir(dir, (err, files) => {
+      if (err) {
+        console.log(err);
+      } else {
+        files.forEach(file => {
+          console.log(file);
+        });
+      }
+    });
+
 
   console.log("Success");
     res.sendStatus(200);
