@@ -1,4 +1,4 @@
 node_modules
 data
 .eslintrc.js
-files
+files/*
