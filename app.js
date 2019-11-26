@@ -69,7 +69,10 @@ app.get('/reset',(req, res, next) => checkBodyForValidAttributes(req, res, next,
     }
     for (const dir of dirs) {
       fs.remove('./files/' + dir, (err) => {
-        if (err) return console.error(err);
+        if (err) {
+          console.error(err);
+          return;
+        }
       });
     }
 
@@ -91,6 +94,24 @@ app.get('/reset',(req, res, next) => checkBodyForValidAttributes(req, res, next,
     res.status(200).json({ "Message" : "All files and db entries were deleted successfully"});
   });
 });
+
+app.post('/test', (req, res) => {
+  let dir = './files/';
+  fs.readdir(dir, (err, files) => {
+    if (err) {
+      console.log(err);
+    } else {
+      files.forEach(file => {
+        console.log(file);
+      });
+    }
+  });
+
+
+  console.log("Success");
+    res.sendStatus(200);
+  });
+
 
 /**
  * @param  {} body
@@ -257,7 +278,7 @@ app.get('/documentPDF/:id', validateToken, (req, res) => {
 
 // send specs of all documents
 app.get('/documents', validateToken, async (req, res) => {
-  console.log(res.locals.user);
+  //console.log(res.locals.user);
   // promise to get all entrys from db and add them to an array, then merge to json obj
   const infoArray = await new Promise((resolve, reject) => {
     Document.find({}, (err, documents) => {
@@ -270,7 +291,7 @@ app.get('/documents', validateToken, async (req, res) => {
         // eslint-disable-next-line array-callback-return
         documents.map((document) => {
           // eslint-disable-next-line no-underscore-dangle
-          const docData = `{ "year" : "${document.year}", "month" : "${document.month}", "institution" : "${document.institution}", "importance" : "${document.importance}", "description" : "${document.description}","id" : "${document._id.toString()}"}`;
+          const docData = `{ "year" : "${document.year}", "month" : "${document.month}", "institution" : "${document.institution}", "importance" : "${document.importance}", "description" : "${document.description}", "title" : "${document.title}", "id" : "${document._id.toString()}"}`;
           documentInfo.push(docData);
         });
 
@@ -281,7 +302,7 @@ app.get('/documents', validateToken, async (req, res) => {
     // .replace(/'/g,'')
   let data = '{ "documentInfo": [';
   let comma = '';
-  console.log(infoArray.length);
+  console.log("Currently belong " + infoArray.length + " documents to " + res.locals.username);
   for (let i = 0; i < infoArray.length; i++) {
     if (i > 0) {
       comma = ',';

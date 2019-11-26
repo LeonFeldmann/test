@@ -1,11 +1,11 @@
 module.exports = function (app, validateToken, checkBodyForValidAttributes) {
+const mongoose = require('mongoose');
+const Schemata = require('../../models/user');
+const Document = require('../../models/document');
+const User = mongoose.model('user', Schemata.User);
+    
 
-
-    app.post('/test', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['institution']), (req, res) => {
-
-        console.log("Success");
-          res.sendStatus(200);
-        });
+  
 
     app.get('/institutions', validateToken, (req, res) => {
         res.send({ "institutions" : res.locals.user.institutions});
@@ -26,7 +26,8 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
     
         if (insitutionIsUnique) {
             institutionsArray.push(newInstitution);
-            console.log(institutionsArray);
+            console.log("Institution: " + newInstitution + " was created");
+            console.log("This is the new institutionsArray: " + institutionsArray);
             User.findOneAndUpdate(query, { institutions: institutionsArray}, {upsert:false}, function(err, doc){
                 if (err) {
                     res.status(500).json({ "error": err });
@@ -195,5 +196,5 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
         });
     });
 
-    
+
 };
