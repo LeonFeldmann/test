@@ -107,6 +107,10 @@ app.post('/test', (req, res) => {
     }
   });
 
+  console.log("Success");
+    res.sendStatus(200);
+  });
+
   app.post('/testAll', (req, res) => {
     let dir = './';
     fs.readdir(dir, (err, files) => {
@@ -118,11 +122,15 @@ app.post('/test', (req, res) => {
         });
       }
     });
+  
+    console.log("Success");
+      res.sendStatus(200);
+    });
+  
 
 
-  console.log("Success");
-    res.sendStatus(200);
-  });
+
+
 
 
 /**
