@@ -331,7 +331,7 @@ app.get('/documents', validateToken, async (req, res) => {
     // .replace(/'/g,'')
   let data = '{ "documentInfo": [';
   let comma = '';
-  console.log("Currently belong " + infoArray.length + " documents to " + res.locals.username);
+  console.log("Currently belong " + infoArray.length + " documents to " + res.locals.user.username);
   for (let i = 0; i < infoArray.length; i++) {
     if (i > 0) {
       comma = ',';

@@ -8,6 +8,7 @@ const User = mongoose.model('user', Schemata.User);
   
 
     app.get('/institutions', validateToken, (req, res) => {
+        console.log(res.locals.user.institutions);
         res.send({ "institutions" : res.locals.user.institutions});
     });
 
@@ -52,7 +53,7 @@ const User = mongoose.model('user', Schemata.User);
               
         for (let i = 0; i < institutionsArray.length; i++) 
         {
-            console.log("Comparing "+ institutionsArray[i] + " to " + institutionToDelete);
+            //console.log("Comparing "+ institutionsArray[i] + " to " + institutionToDelete);
             if (institutionsArray[i] == institutionToDelete) {
                 institutionFound = true;
                 positionFound = i;
@@ -85,7 +86,7 @@ const User = mongoose.model('user', Schemata.User);
                                 
                                 for (let i = 0; i < institutionsArray.length; i++) 
                                 {
-                                    console.log("Comparing "+ institutionsArray[i] + " to " + institutionToDelete);
+                                    //console.log("Comparing "+ institutionsArray[i] + " to " + institutionToDelete);
                                     if (institutionsArray[i] == institutionToDelete) {
                                         institutionFound = true;
                                         positionFound = i;
