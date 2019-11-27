@@ -324,14 +324,14 @@ app.post('/register', (req, res, next) => checkBodyForValidAttributes(req, res, 
 });
 
 app.post('/login', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['userIdentifier', 'password']), async (req, res) => {
-  // make sure files folder is set up
-  if (fs.existsSync('./files/')) {
-    console.log("Files folder aready existing");
+// make sure files folder is set up
+if (fs.existsSync('./files/')) {
+  console.log("Files folder aready existing");
 } else {
-  fs.mkdir('./files/', { recursive: true }, (err) => {
-    if (err) console.log(err);
-  });
-  console.log("Files folder created");
+fs.mkdir('./files/', { recursive: true }, (err) => {
+  if (err) console.log(err);
+});
+console.log("Files folder created");
 }
 
 
@@ -755,5 +755,15 @@ require('./app/routes/institution_routes')(app, validateToken, checkBodyForValid
 
 
 app.listen(port, () => {
+    // make sure files folder is set up
+    if (fs.existsSync('./files/')) {
+      console.log("Files folder aready existing");
+  } else {
+    fs.mkdir('./files/', { recursive: true }, (err) => {
+      if (err) console.log(err);
+    });
+    console.log("Files folder created");
+  }
+
   console.log(`The app listening on port: ${port}`);
 });
