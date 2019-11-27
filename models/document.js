@@ -9,7 +9,7 @@ const DocumentSchema = new mongoose.Schema({
   description: String,
   filePath: String,
   title: String,
-  userID: String,
+  user: String,
 });
 
 module.exports = mongoose.model('Document', DocumentSchema);

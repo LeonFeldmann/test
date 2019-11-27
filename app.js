@@ -241,8 +241,6 @@ function checkBodyForValidAttributes(req, res, next, attributes) {
   }
 }
 
-
-
 /**
  * @param  {} req
  * @param  {} res
@@ -292,13 +290,15 @@ function checkUsernameAndEmail(req, res, next) {
 }
 
 
-app.post('/register', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['email', 'username', 'password']), (req, res, next) => checkUsernameAndEmail(req, res, next), (req, res) => {
+app.post('/register', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['email', 'username', 'firstName', 'lastName', 'password']), (req, res, next) => checkUsernameAndEmail(req, res, next), (req, res) => {
 
   const newUser = new User({
     email: req.body.email,
     username: req.body.username,
     password: User.hashPassword(req.body.password),
-    todos: [],
+    firstName: req.body.firstName,
+    lastName: req.body.lastName,
+    picture: "./default.png",
     institutions: ['other'],
     lastLoggedIn: new Date(),
   });
@@ -383,6 +383,138 @@ console.log("Files folder created");
       });
      }
      res.send();
+});
+
+app.get('/userInfo', validateToken, async (req, res) => {
+
+  let documentCount = await Document.find({"user":res.locals.user._id}).countDocuments();
+  let todoCount = await Todo.find({"user":res.locals.user._id}).countDocuments();
+
+  let responseJson = {
+    "institutions": res.locals.user.institutions,
+  "_id": res.locals.user._id,
+  "email": res.locals.user.email,
+  "username": res.locals.user.username,
+  "firstName": res.locals.user.firstName,
+  "lastName": res.locals.user.lastName,
+  "picture": res.locals.user.picture,
+  "lastLoggedIn": res.locals.user.lastLoggedIn,
+  "documentCount": documentCount,
+  "todoCount": todoCount
+  }
+
+  res.status(200).json(responseJson);
+
+});
+
+app.put('/editUser', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['email', 'firstName', 'lastName']), (req, res) => {
+
+  User.updateOne({"_id":res.locals.user._id},{"email":req.body.email, "firstName": req.body.firstName, "lastName": req.body.lastName}, (err) => {
+  if (err) {
+    console.log(err);
+    res.sendStatus(500);
+  } else {
+    res.sendStatus(200);
+  }
+  });
+
+
+});
+
+app.post('/changePW', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['password']), (req, res) => {
+ 
+  User.updateOne({"_id":res.locals.user._id}, {"password":User.hashPassword(req.body.password)}, (err) => {
+    if (err) {
+      console.log(err);
+      res.sendStatus(500);
+    } else {
+      res.sendStatus(200);
+    }
+    });
+
+});
+
+app.post('/deleteUser', validateToken, (req, res) => {
+
+  // clean db
+  User.deleteOne({"_id": res.locals.user._id}, function(err) {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log(res.locals.user.username + " has been deleted");
+    }
+  });
+  Document.deleteMany({"user":res.locals.user._id}, function (err) {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log("All documents of " + res.locals.user.username + " deleted");
+    }
+  });
+  Todo.deleteMany({"user":res.locals.user._id}, function (err) {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log("All documents of " + res.locals.user.username + " deleted");
+    }
+  });
+
+  fs.remove('./files/' + res.locals.user.username, (err) => {
+
+    if (err) {
+      console.error(err);
+      res.sendStatus(500);
+    } else {
+      res.sendStatus(200);
+    }
+
+  });
+
+
+
+
+
+
+});
+
+let mime = {
+  html: 'text/html',
+  txt: 'text/plain',
+  css: 'text/css',
+  gif: 'image/gif',
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  svg: 'image/svg+xml',
+  js: 'application/javascript'
+};
+
+app.get('/userPicture', validateToken, (req, res) => {
+
+//   let file = res.locals.user.picture;
+//   var type = mime[path.extname(file).slice(1)] || 'text/plain';
+//   var s = fs.createReadStream(file);
+//   s.on('open', function () {
+//     res.set('Content-Type', type);
+//     s.pipe(res);
+// });
+// s.on('error', function () {
+//     res.set('Content-Type', 'text/plain');
+//     res.status(404).end('Not found');
+// });
+// console.log(res.locals.user.picture);
+// res.sendFile("WebFileViewerProject/default.png");
+
+//res.sendFile(res.locals.user.picture);
+//res.send(200);
+
+
+
+});
+
+app.post('/userPicture', validateToken, (req, res) => {
+
+  
+
 });
 
 // send pdf matching the id
@@ -470,7 +602,7 @@ function makedbEntry(user, yearvar, monthvar, institutionvar, importancevar, des
     description: descriptionvar,
     filePath: filePathvar,
     title: titlevar,
-    userID: userIDvar,
+    user: userIDvar,
   });
   //console.log(user);
   console.log(filePathvar);
@@ -685,25 +817,6 @@ app.post('/createTodo', validateToken, (req, res, next) => checkBodyForValidAttr
       res.sendStatus(200);
     }
   });
-
-    // if (todoArray.length == 1 && Object.keys(todoArray[0]).length === 0) {
-    //   todoArray[0] = todo;
-    // } else {
-    //   todoArray.push(todo);
-    // }
-    // console.log(todoArray);
-    //  User.findOneAndUpdate({"_id" : res.locals.user._id}, { todos: todoArray}, {upsert:false}, function(err, doc){
-    //   if (err) {
-    //     console.log(err);
-    //   } else {
-    //     console.log("Todo updated");
-    //   }
-    //   res.sendStatus(200);
-    //   });
-    
-  // }
-
-
 
 });
 

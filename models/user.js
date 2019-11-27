@@ -13,10 +13,12 @@ const TodoSchema = new mongoose.Schema({
 const UserSchema = new mongoose.Schema({
   email: String,
   username: String,
+  firstName: String,
+  lastName: String,
   password: String,
   institutions: [],
-  todos: [TodoSchema],
   lastLoggedIn: String,
+  picture: String,
 });
 
 UserSchema.statics.hashPassword = function (password) {

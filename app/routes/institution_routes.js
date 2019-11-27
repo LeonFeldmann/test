@@ -72,7 +72,7 @@ const User = mongoose.model('user', Schemata.User);
                 } else {
                     // delete institution from documents
                     // get all docs with username ...
-                    let userQuery = {"userID": res.locals.user._id};
+                    let userQuery = {"user": res.locals.user._id};
                     Document.find(userQuery, function(err, docs) {
                         if (err) {
                             console.log("User has no documents");
