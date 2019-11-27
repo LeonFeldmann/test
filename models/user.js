@@ -4,15 +4,18 @@ const bcrypt = require('bcrypt');
 
 const TodoSchema = new mongoose.Schema({
   title: String,
-  date: Date,
+  marked: Boolean,
+  user: String,
 });
+
+
 
 const UserSchema = new mongoose.Schema({
   email: String,
   username: String,
   password: String,
   institutions: [],
-  todo: TodoSchema,
+  todos: [TodoSchema],
   lastLoggedIn: String,
 });
 

@@ -5,10 +5,14 @@ const path = require('path');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const merge = require('easy-pdf-merge');
+
 const Schemata = require('./models/user');
 const Document = require('./models/document');
 
+
 const User = mongoose.model('user', Schemata.User);
+const Todo = mongoose.model('todo', Schemata.Todo);
 
 const app = express();
 
@@ -16,6 +20,7 @@ const app = express();
 const url = process.env.MONGODB_URI || 'mongodb://localhost/data';
 const db = mongoose.connection;
 mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.set('useFindAndModify', false);
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', () => {
   console.log('we\'re connected!');
@@ -33,7 +38,6 @@ app.use(cors());
 //   }));
 // }
 
-createFilesFolder();
 app.use(require('express-session')({
   secret: 'Anything at all',
   resave: false,
@@ -45,16 +49,100 @@ app.use(bodyParser.json({ extended: true }));
 const port = process.env.PORT || 3000;
 
 
-// app.post('/creatDir', (req, res) => {
-//   fs.mkdir('./files/' + req.body.dir, { recursive: true }, (err) => {
-//     if (err) {
-//       console.log(err);
-//       res.status(400).json({ "error": "There was an error" });
-//     } else {
-//       res.status(200).json({ "message": "success" });
-//     }
-//   });
-// });
+let mergedFileToEdit = false;
+app.post('/mergePDFs', validateToken, async (req, res) => {
+  
+  if (req.body.hasOwnProperty('pdfArray') && Array.isArray(req.body.pdfArray) && req.body.pdfArray.length >= 2) {
+    
+  
+    let pdfIDArray = req.body.pdfArray;
+    let pdfArray = [];
+    let idsAreInvalidOrNull = false;
+
+    for (let i = 0; i < pdfIDArray.length; i ++) {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        idsAreInvalidOrNull = true;
+        break;
+      } else {
+        let file = await Document.findOne({"_id": pdfIDArray[i]}).exec();
+        if (file == null) {
+          idsAreInvalidOrNull = true;
+          break;
+        }
+        pdfArray.push(file);
+      }
+
+    }
+
+
+
+    if (idsAreInvalidOrNull) {
+      res.status(400).json({"error" : "Please use valid document ids"});
+    } else {
+
+      console.log(pdfArray);
+
+      res.sendStatus(200);
+      }
+
+
+
+    // if (pdfArray.length < 2) {
+
+    // } else {
+
+    // }
+
+
+    // var firstFile = await Document.findOne({"_id": req.body.firstPDFid}).exec();
+    // var secondFile = await Document.findOne({"_id": req.body.secondPDFid}).exec();
+
+  
+    // const files = [firstFile.filePath, secondFile.filePath];
+    // const newFilePath = "newFiles/newMergedPDF.pdf";
+    // merge(files, newFilePath, function(err) {
+    //   if (err) {
+    //     console.log(err);
+    //   } else {
+      
+    //   Document.deleteOne({"_id":req.body.firstPDFid}, function(err) {
+    //     if (err) {
+    //       console.log(err);
+    //     }
+    //   });
+    //   Document.deleteOne({"_id":req.body.secondPDFid}, function(err) {
+    //     if (err) {
+    //       console.log(err);
+    //     }
+    //   });
+  
+  
+  
+    //   currentFileCount++;
+    //   mergedFileToEdit = true;
+    //   const stream = fs.createReadStream(newFilePath);
+    //   res.writeHead(200, {
+    //     'Content-disposition': `attachment; filename='${encodeURIComponent(path.basename(newFilePath))}'`,
+    //     'Content-type': 'application/pdf',
+    //     'Access-Control-Allow-Origin': '*',
+    //     'Access-Control-Allow-Methods': 'POST, GET',
+    //     'fileCount': currentFileCount,
+    //     'Access-Control-Expose-Headers': '*',
+    //   });
+    //    stream.pipe(res);
+    //   }
+    // });
+
+
+  } else {
+    res.status(400).json({ "error" : "Please send an object with keys pdfArray and value = array with at least 2 pdf ids"});
+  }
+
+
+  
+
+});
+
 
 app.get('/reset',(req, res, next) => checkBodyForValidAttributes(req, res, next, ['password']), (req, res) => {
   if (req.body.password !== 'masterPW') {
@@ -111,7 +199,7 @@ app.post('/test', (req, res) => {
     res.sendStatus(200);
   });
 
-  app.post('/testAll', (req, res) => {
+app.post('/testAll', (req, res) => {
     let dir = './';
     fs.readdir(dir, (err, files) => {
       if (err) {
@@ -125,19 +213,8 @@ app.post('/test', (req, res) => {
   
     console.log("Success");
       res.sendStatus(200);
-    });
-  
+});
 
-function createFilesFolder() {
-  if (fs.existsSync('./files/')) {
-    console.log("Files folder aready existing");
-} else {
-  fs.mkdir('./files/', { recursive: true }, (err) => {
-    if (err) console.log(err);
-  });
-  console.log("Files folder created");
-}
-}
 
 
 
@@ -221,7 +298,7 @@ app.post('/register', (req, res, next) => checkBodyForValidAttributes(req, res, 
     email: req.body.email,
     username: req.body.username,
     password: User.hashPassword(req.body.password),
-    todos: {},
+    todos: [],
     institutions: ['other'],
     lastLoggedIn: new Date(),
   });
@@ -247,13 +324,29 @@ app.post('/register', (req, res, next) => checkBodyForValidAttributes(req, res, 
 });
 
 app.post('/login', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['userIdentifier', 'password']), async (req, res) => {
+  // make sure files folder is set up
+  if (fs.existsSync('./files/')) {
+    console.log("Files folder aready existing");
+} else {
+  fs.mkdir('./files/', { recursive: true }, (err) => {
+    if (err) console.log(err);
+  });
+  console.log("Files folder created");
+}
+
 
     var firstQuery = await User.findOne({"username": req.body.userIdentifier}).exec();
     var secondQuery = await User.findOne({"email": req.body.userIdentifier}).exec();
-    // console.log(firstQuery);
-    // console.log(secondQuery);
+     console.log(firstQuery);
+     console.log(secondQuery);
   
      if (firstQuery && secondQuery == null && firstQuery.isValid(req.body.password, firstQuery.password)) {
+      User.findOneAndUpdate({"_id" : firstQuery._id}, { lastLoggedIn: new Date()}, {upsert:false}, function(err, doc){
+        if (err) {
+          console.log(err);
+        }
+        });
+
         console.log('Valid password');
         const token = jwt.sign({ userID: firstQuery._id }, 'secret', { expiresIn: '3h' });
         //console.log(token);
@@ -262,6 +355,13 @@ app.post('/login', (req, res, next) => checkBodyForValidAttributes(req, res, nex
           "token": token,
         });
      } else if (firstQuery == null && secondQuery && secondQuery.isValid(req.body.password, secondQuery.password)) {
+        
+      User.findOneAndUpdate({"_id" : secondQuery._id}, { lastLoggedIn: new Date()}, {upsert:false}, function(err, doc){
+        if (err) {
+          console.log(err);
+        }
+        });
+
         console.log('Valid password');
         const token = jwt.sign({ userID: secondQuery._id }, 'secret', { expiresIn: '3h' });
         //console.log(token);
@@ -385,60 +485,6 @@ function makedbEntry(user, yearvar, monthvar, institutionvar, importancevar, des
   });
 }
 
-/**
- * This function creates a unique filename by concatenating document metainformation
- * with the original filename and if needed with an id.
- * Then the file gets copied from the newFiles directory to the destinationDirectory
- * and the old file is deleted.
- * @param  {string} filePrefix
- * @param  {string} destinationDirectory
- */
-function generateFilenameAndCopyFile(filePrefix, destinationDirectory) {
-  fs.readdir(destinationDirectory, (err, files) => {
-    if (err) {
-      console.log(err);
-      return false;
-    }
-    console.log(files);
-    let newFilename = filePrefix + '.pdf';
-    let foundDuplicate = false;
-    for(let a = 0; a < 1000; a++) {
-      foundDuplicate = false;
-      //newFilename = filePrefix + '.pdf';
-      if(a > 0) {
-        newFilename = filePrefix + a + '.pdf';
-      }
-      // eslint-disable-next-line no-loop-func
-      files.forEach(filename => {
-        //console.log('Comparing ' + filename + ' to ' + newFilename);
-        if (filename === newFilename) {
-          //console.log('duplicate found');
-          foundDuplicate = true;
-        }
-      });
-      if (!foundDuplicate) {
-        break;
-      }
-    }
-
-
-    //console.log(newFilename);
-    fs.copyFile('newFiles/ProblemSheet01.pdf', destinationDirectory + newFilename, (error) => {
-      return new Promise((resolve, reject) => {
-        if (error) {
-          console.log(err);
-          generatedFilename = false;
-          reject(false);
-        } else {
-          //console.log('Success');
-          //console.log(destinationDirectory + newFilename);
-          generatedFilename = destinationDirectory + newFilename;
-          resolve(destinationDirectory + newFilename);
-        }
-      });
-    });
-});
-}
 
 let currentFile = null;
 let currentFileCount = 6;
@@ -486,7 +532,24 @@ app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes
         let newFilesDir = "./newFiles";
         console.log("Generated filename: " + generatedFilename);
 
-        if (currentFile !== null) {
+        if (mergedFileToEdit) {
+          fs.copyFile(newFilesDir + "/newMergedPDF.pdf", generatedFilename, (error) => {  
+            if (error) {
+              console.log(err);
+              res.status(500).json({ "error": "Error while moving the file"});
+            } else {
+              console.log('Success');
+              //console.log(destinationDirectory + newFilename);
+            }
+            mergedFileToEdit = false;
+            fs.remove('./newFiles/newMergedPDF.pdf', (err) => {
+              if (err) {
+                console.error(err);
+                return;
+              }
+            });
+          });
+        } else if (currentFile !== null) {
           fs.copyFile(newFilesDir + "/" + currentFile, generatedFilename, (error) => {  
             if (error) {
               console.log(err);
@@ -551,7 +614,6 @@ app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes
   
 });
 
-
 app.get('/importDocuments', validateToken, (req, res) => {
   const newFilesDir = './newFiles';
       // send next file
@@ -588,6 +650,104 @@ app.get('/importDocuments', validateToken, (req, res) => {
       });
 
 });
+
+
+
+app.get('/todos', validateToken, (req, res) => {
+  
+  Todo.find({"user":res.locals.user._id},{"user":false, "__v":false}, (err, todos) => {
+  
+    if (err) {
+      console.log(err);
+      res.sendStatus(500);
+    } else {
+      res.status(200).json({"todos" : todos});
+    }
+  });
+  
+});
+
+app.post('/createTodo', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['todoTitle']), (req, res) => {
+
+  let todo = new Todo({
+    "title" : req.body.todoTitle,
+    "marked" : false,
+    "user" : res.locals.user._id,
+  });
+
+  todo.save((err, todo) => {
+    if (err) {
+      console.log('Error adding to DB');
+      res.status(500).json({ "error": "While writing the entry to the db the following error occured: " + err});
+    } else {
+      console.log('Successfully saved todo to db');
+      console.log(todo);
+      res.sendStatus(200);
+    }
+  });
+
+    // if (todoArray.length == 1 && Object.keys(todoArray[0]).length === 0) {
+    //   todoArray[0] = todo;
+    // } else {
+    //   todoArray.push(todo);
+    // }
+    // console.log(todoArray);
+    //  User.findOneAndUpdate({"_id" : res.locals.user._id}, { todos: todoArray}, {upsert:false}, function(err, doc){
+    //   if (err) {
+    //     console.log(err);
+    //   } else {
+    //     console.log("Todo updated");
+    //   }
+    //   res.sendStatus(200);
+    //   });
+    
+  // }
+
+
+
+});
+
+app.post('/deleteTodo', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['todoID']), (req, res) => {
+  Todo.findOneAndDelete({"_id":req.body.todoID, "user": res.locals.user._id}, (err) => {
+    if (err) {
+      console.log(err);
+      res.sendStatus(500);
+    } else {
+      res.sendStatus(200);
+    }
+  });
+
+});
+
+app.post('/markTodo', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['todoID']), (req, res) => {
+  
+  Todo.findOneAndUpdate({"_id":req.body.todoID, "user": res.locals.user._id},{"marked":true} , (err, doc) => {
+    if (err) {
+      console.log(err);
+      res.sendStatus(500);
+    } else {
+      console.log(doc);
+      res.sendStatus(200);
+    }
+  });
+
+});
+
+app.post('/unmarkTodo', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['todoID']), (req, res) => {
+  
+  Todo.findOneAndUpdate({"_id":req.body.todoID, "user": res.locals.user._id},{"marked":false} , (err, doc) => {
+    if (err) {
+      console.log(err);
+      res.sendStatus(500);
+    } else {
+      console.log(doc);
+      res.sendStatus(200);
+    }
+  });
+
+});
+
+
 
 
 require('./app/routes')(app, {});
