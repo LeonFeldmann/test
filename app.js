@@ -625,16 +625,20 @@ app.post('/updatePicture', validateToken, (req, res) => {
       res.sendStatus(500);
     } else if (oldPictureName.length > 0) {
       console.log(file.image);
-      console.log(file.image.path);
-    let filePath = file.image.path;
-    let fileName = file.image.name;
-    let oldPictureName = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
-    console.log(oldPictureName);
- 
-    fs.unlink("./files/" + res.locals.user.username + "/" + oldPictureName);
-    fs.rename(filePath, form.uploadDir + "/" + fileName);
-
-    res.sendStatus(200);
+      if (file.image.hasOwnProperty('path')) {
+        console.log(file.image.path);
+        let filePath = file.image.path;
+        let fileName = file.image.name;
+        let oldPictureName = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
+        console.log(oldPictureName);
+     
+        fs.unlink("./files/" + res.locals.user.username + "/" + oldPictureName);
+        fs.rename(filePath, form.uploadDir + "/" + fileName);
+        res.sendStatus(200);
+      } else {
+        console.log("Property path does not exist");
+        res.status(500).json({ "error": "Could not accept the picture because of some issue"});
+      }
     }
    
     });
@@ -802,7 +806,16 @@ app.post('/currentDocumentData', validateToken, (req, res, next) => checkBodyFor
                       'fileCount': 0,
                       'Access-Control-Expose-Headers': '*',
                     });
+                  } else if (currentFileCount == null) {
+
+                    res.writeHead(200, {
+                      'Access-Control-Allow-Origin': '*',
+                      'Access-Control-Allow-Methods': 'POST, GET',
+                      'fileCount': 0,
+                      'Access-Control-Expose-Headers': '*',
+                    });
                   } else {
+
                     currentFileCount --;
                     console.log("New file count is: " + currentFileCount);
   
