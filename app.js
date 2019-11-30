@@ -21,7 +21,6 @@ const User = mongoose.model('user', Schemata.User);
 const Todo = mongoose.model('todo', Schemata.Todo);
 
 const app = express();
-//app.use(formidableMiddleware());
 let form = new formidable.IncomingForm();
 form.uploadDir = "./files";
 form.keepExtensions = true;
@@ -64,97 +63,115 @@ const port = process.env.PORT || 3000;
 
 
 let mergedFileToEdit = false;
-app.post('/mergePDFs', validateToken, async (req, res) => {
+app.post('/mergePDFs', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['year', 'month', 'institution', 'importance']), async (req, res) => {
   
   if (req.body.hasOwnProperty('pdfArray') && Array.isArray(req.body.pdfArray) && req.body.pdfArray.length >= 2) {
     
+    const { year } = req.body;
+    const { month } = req.body;
+    const { institution } = req.body;
+    const { importance } = req.body;
+    const { description } = req.body;
+    const { title } = req.body;
+    const dirPath = './files/' + res.locals.user.username + '/';
+    const filePrefix = year + '-' + month + '-' + institution + '-' + title;
+    console.log("Current user is: " + res.locals.user.username);
   
+    // getting pdf array
     let pdfIDArray = req.body.pdfArray;
     let pdfArray = [];
-    let idsAreInvalidOrNull = false;
+    let idsAreValid = true;
 
+    // check input array and create filePath array
     for (let i = 0; i < pdfIDArray.length; i ++) {
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-        idsAreInvalidOrNull = true;
+      if (!mongoose.Types.ObjectId.isValid(pdfIDArray[i])) {
+        idsAreValid = false;
         break;
       } else {
         let file = await Document.findOne({"_id": pdfIDArray[i]}).exec();
         if (file == null) {
-          idsAreInvalidOrNull = true;
+          idsAreValid = false;
           break;
         }
-        pdfArray.push(file);
+        pdfArray.push(file.filePath);
       }
 
     }
 
+    if (idsAreValid) {
 
+    // merging the pdfs
+      merge(pdfArray, "newFiles/newMergedPDF.pdf" , function(err) {
+      if (err) {
+        console.log(err);
+        res.status(500).json({"error" : "Error merging pdfs"});
+        return;
+      } else {
+      console.log("successfully merge pdfs");
 
-    if (idsAreInvalidOrNull) {
-      res.status(400).json({"error" : "Please use valid document ids"});
-    } else {
+      deleteDocumentsFromDB(pdfIDArray);
+      deleteDocumentsFromFS(pdfArray);
 
-      console.log(pdfArray);
+      // generate new filename
+      // fs.readdir(dirPath, (err, files) => {
+      //   if (err) {
+      //     console.log(err);
+      //   } else {
+      //     //console.log(files);
+      //     let newFilename = filePrefix + '.pdf';
+      //     let foundDuplicate = false;
+      //     for(let a = 0; a < 1000; a++) {
+      //       foundDuplicate = false;
+      //       //newFilename = filePrefix + '.pdf';
+      //       if(a > 0) {
+      //         newFilename = filePrefix + a + '.pdf';
+      //       }
+      //       // eslint-disable-next-line no-loop-func
+      //       files.forEach(filename => {
+      //       //console.log('Comparing ' + filename + ' to ' + newFilename);
+      //         if (filename === newFilename) {
+      //           //console.log('duplicate found');
+      //           foundDuplicate = true;
+      //         }
+      //       });
+      //       if (!foundDuplicate) {
+      //         break;
+      //       }
+      //     }
+      //     let generatedFilename = dirPath + newFilename;
+      //     console.log("The old generatedFilename is: " + generatedFilename);
+          let generatedFilename = generateFilename(dirPath, filePrefix);
+          //console.log(result);
 
-      res.sendStatus(200);
+      // write new file in db
+      makedbEntry(res.locals.user, year, month, institution, importance, description, title, generatedFilename.substr(2), res.locals.user._id);
+
+      // move new file to fs
+      fs.copyFile("./newFiles/newMergedPDF.pdf", generatedFilename, (error) => {  
+        if (error) {
+          console.log(err);
+        } else {
+          console.log('Success');
+        }
+        fs.remove('./newFiles/newMergedPDF.pdf', (err) => {
+          if (err) {
+            console.error(err);
+            return;
+            }
+          });
+        });
       }
 
+    });
 
-
-    // if (pdfArray.length < 2) {
-
-    // } else {
-
-    // }
-
-
-    // var firstFile = await Document.findOne({"_id": req.body.firstPDFid}).exec();
-    // var secondFile = await Document.findOne({"_id": req.body.secondPDFid}).exec();
-
-  
-    // const files = [firstFile.filePath, secondFile.filePath];
-    // const newFilePath = "newFiles/newMergedPDF.pdf";
-    // merge(files, newFilePath, function(err) {
-    //   if (err) {
-    //     console.log(err);
-    //   } else {
+        res.sendStatus(200);
       
-    //   Document.deleteOne({"_id":req.body.firstPDFid}, function(err) {
-    //     if (err) {
-    //       console.log(err);
-    //     }
-    //   });
-    //   Document.deleteOne({"_id":req.body.secondPDFid}, function(err) {
-    //     if (err) {
-    //       console.log(err);
-    //     }
-    //   });
-  
-  
-  
-    //   currentFileCount++;
-    //   mergedFileToEdit = true;
-    //   const stream = fs.createReadStream(newFilePath);
-    //   res.writeHead(200, {
-    //     'Content-disposition': `attachment; filename='${encodeURIComponent(path.basename(newFilePath))}'`,
-    //     'Content-type': 'application/pdf',
-    //     'Access-Control-Allow-Origin': '*',
-    //     'Access-Control-Allow-Methods': 'POST, GET',
-    //     'fileCount': currentFileCount,
-    //     'Access-Control-Expose-Headers': '*',
-    //   });
-    //    stream.pipe(res);
-    //   }
-    // });
-
-
+    } else {
+      res.status(400).json({"error" : "Please use valid document ids"});
+    }
   } else {
     res.status(400).json({ "error" : "Please send an object with keys pdfArray and value = array with at least 2 pdf ids"});
   }
-
-
-  
-
 });
 
 
@@ -200,15 +217,18 @@ app.get('/reset',(req, res, next) => checkBodyForValidAttributes(req, res, next,
 app.post('/test', (req, res) => {
   let dir = './files/';
 
-  fs.readdir(dir, (err, files) => {
-    if (err) {
-      console.log(err);
-    } else {
-      files.forEach(file => {
-        console.log(file);
-      });
-    }
-  });
+
+  let result = generateFilename('./files/leon/', '2000-2-stuff-title');
+  console.log(result);
+  // fs.readdir(dir, (err, files) => {
+  //   if (err) {
+  //     console.log(err);
+  //   } else {
+  //     files.forEach(file => {
+  //       console.log(file);
+  //     });
+  //   }
+  // });
 
     res.sendStatus(200);
   });
@@ -243,6 +263,70 @@ app.post('/testUser', validateToken, (req, res) => {
     res.sendStatus(200);
 });
 
+function deleteDocumentsFromDB(idArray) {
+   
+    let NoError = true;
+      console.log("This is the id array " + idArray);
+      idArray.forEach(id => {
+        Document.deleteOne({"_id":id}, function(err) {
+          if (err) {
+            console.log(err);
+            error = false;
+          }
+        });
+        console.log("Document " + id + " has been deleted from db");
+      });
+
+return NoError;
+}
+function deleteDocumentsFromFS(pathArray) {
+
+  let noError = true;
+
+      pathArray.forEach(filePath => {
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            console.log(err);
+            noError = false;
+          } else {
+            console.log("File at " + filePath + " has been deleted");
+          }
+        });
+      });
+return noError;
+}
+function generateFilename(dirPath, filePrefix) { 
+  let generatedFilename = null;
+
+
+  let files = fs.readdirSync(dirPath);
+  
+  let newFilename = filePrefix + '.pdf';
+  let foundDuplicate = false;
+  for(let a = 0; a < 1000; a++) {
+
+    foundDuplicate = false;
+    //newFilename = filePrefix + '.pdf';
+    if(a > 0) {
+      newFilename = filePrefix + a + '.pdf';
+    }
+    // eslint-disable-next-line no-loop-func
+    files.forEach(filename => {
+    //console.log('Comparing ' + filename + ' to ' + newFilename);
+      if (filename === newFilename) {
+        //console.log('duplicate found');
+        foundDuplicate = true;
+      }
+    });
+    if (!foundDuplicate) {
+      break;
+    }
+  }
+  generatedFilename = dirPath + newFilename;
+  console.log(generatedFilename);
+        
+ return generatedFilename;       
+}
 
 
 
@@ -512,9 +596,18 @@ app.get('/userPicture', validateToken, (req, res) => {
 
 let picturePath = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
 if (picturePath.length > 0) {
-
-  res.sendFile("./files/" + res.locals.user.username + "/" + picturePath[0], {root:'.'});
-
+  console.log(picturePath);
+  let imagePath = "./files/" + res.locals.user.username + "/" + picturePath[0];
+  //res.sendFile("./files/" + res.locals.user.username + "/" + picturePath[0], {root:'.'});
+  const stream = fs.createReadStream(imagePath);
+  res.writeHead(200, {
+    'Content-disposition': `attachment; filename='${encodeURIComponent(path.basename(imagePath))}'`,
+    'Content-type': 'image/png',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, GET',
+    'Access-Control-Expose-Headers': '*',
+  });
+   stream.pipe(res);
 } else {
   console.log("Error finding picture");
   res.sendStatus(500);
@@ -525,7 +618,6 @@ if (picturePath.length > 0) {
 app.post('/updatePicture', validateToken, (req, res) => {
 
   form.uploadDir = "./files/" + res.locals.user.username;
-
 
   form.parse(req, function(err, file) {
     console.log(file.image.path);
@@ -538,10 +630,6 @@ app.post('/updatePicture', validateToken, (req, res) => {
       fs.unlink("./files/" + res.locals.user.username + "/" + oldPictureName);
       fs.rename(filePath, form.uploadDir + "/" + fileName);
 
-
-      // res.writeHead(200, {'content-type': 'text/plain'});
-      // res.write('received upload:\n\n');
-      // res.end(util.inspect({fields: fields, file: file}));
       res.sendStatus(200);
 
     } else {
@@ -621,7 +709,8 @@ app.get('/documents', validateToken, async (req, res) => {
 let currentFile = null;
 let currentFileCount = 6;
 
-app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['year', 'month', 'institution', 'importance']), validateToken, async (req, res) => {
+app.post('/currentDocumentData', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['year', 'month', 'institution', 'importance']), async (req, res) => {
+  console.log("Value of mergeFileToEdit is " + mergedFileToEdit);
   const { year } = req.body;
   const { month } = req.body;
   const { institution } = req.body;
@@ -670,7 +759,7 @@ app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes
             console.log('Success');
             //console.log(destinationDirectory + newFilename);
           }
-          mergedFileToEdit = false;
+          //mergedFileToEdit = false;
           fs.remove('./newFiles/newMergedPDF.pdf', (err) => {
             if (err) {
               console.error(err);
@@ -678,7 +767,9 @@ app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes
               }
             });
           });
+
         } else if (currentFile !== null) {
+          console.log("moving file to dir normally");
           fs.copyFile(newFilesDir + "/" + currentFile, generatedFilename, (error) => {  
             if (error) {
               console.log(err);
@@ -694,32 +785,46 @@ app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes
                 makedbEntry(res.locals.user, year, month, institution, importance, description, title, generatedFilename.substr(2), res.locals.user._id);
               }
 
-              // delete old file
-                console.log("Currentfile is: " + currentFile);
-                 if(currentFile !== null) {
-                //   fs.unlink(newFilesDir + "/" + currentFile);
-                 }
-                 if (currentFileCount !== 0) {
-                  currentFileCount --;
-                  console.log("New file count is: " + currentFileCount);
-                 }
-
-
                 // send next file
                 fs.readdir(newFilesDir, (err, files) => {
                   // console.log("Reading ./newFiles");
                   // console.log(files.length);
                   if(err) {
                     console.log(err);
-                  } else if (files.length == 0 || currentFileCount == 0) {
+                  } else if (mergedFileToEdit) {
+
+                    let index = 6 - currentFileCount;
+                    let fileToSend = newFilesDir + '/' + files[index];
+                    const stream = fs.createReadStream(fileToSend);
+                    res.writeHead(200, {
+                      'Content-disposition': `attachment; filename='${encodeURIComponent(path.basename(fileToSend))}'`,
+                      'Content-type': 'application/pdf',
+                      'Access-Control-Allow-Origin': '*',
+                      'Access-Control-Allow-Methods': 'POST, GET',
+                      'fileCount': files.length,
+                      'Access-Control-Expose-Headers': '*',
+                    });
+                     stream.pipe(res);
+                     console.log("new Currentfile is: " + currentFile);
+                     mergedFileToEdit = false;
+                     if (files.length > 0 && currentFile == null) {
+                      currentFile = files[index];
+                     }
+                    
+                  }  else if (files.length == 0 || currentFileCount == 0) {
+                    currentFile = null;
+                    console.log("New file count is: " + currentFileCount);
+
                     res.writeHead(200, {
                       'Access-Control-Allow-Origin': '*',
                       'Access-Control-Allow-Methods': 'POST, GET',
                       'fileCount': 0,
                       'Access-Control-Expose-Headers': '*',
                     });
-                    currentFile = null;
                   } else {
+                    currentFileCount --;
+                    console.log("New file count is: " + currentFileCount);
+  
                     //console.log(files[0]);
                     let index = 6 - currentFileCount;
                     let fileToSend = newFilesDir + '/' + files[index];
@@ -780,6 +885,33 @@ app.get('/importDocuments', validateToken, (req, res) => {
 
 });
 
+app.post('/deleteDocument', validateToken,  (req, res, next) => checkBodyForValidAttributes(req, res, next, ['documentID']), (req, res) => {
+
+        Document.findOne({"_id":req.body.documentID}, function(err, doc) {
+          if(err) {
+            console.log(err);
+          } else {
+            if (fs.existsSync(doc.filePath)) {
+              fs.unlink(doc.filePath);
+              console.log("File at " + doc.filePath + " has been deleted");
+            } else {
+              console.log("File to be deleted does not exist");
+            }
+          }
+        });
+
+        Document.deleteOne({"_id":req.body.documentID}, function(err) {
+          if (err) {
+            console.log(err);
+          }
+        });
+        console.log("Document " + req.body.documentID + " has been deleted from db");
+
+
+        res.sendStatus(200);
+
+});
+
 // eslint-disable-next-line max-len
 /**
  * @param  {} user
@@ -835,7 +967,37 @@ app.listen(port, () => {
       if (err) console.log(err);
     });
     console.log("Files folder created");
+  
+    // create user folder
+  User.find({}, function(err, res) {
+    console.log(res);
+    if (res.length > 0) {
+      res.forEach(user => {
+        fs.mkdir(`./files/${user.username}`, { recursive: true }, (err) => {
+          if (err) {
+            console.log(err);
+          } else {
+            fs.copyFile("picture.png", './files/' + user.username + '/picture.png');
+          }
+        });      
+      });
+      console.log("Initialized user directories with picture");
+    }
+  });
+
   }
+
+
+
+  // fs.mkdir(`./files/${req.body.username}`, { recursive: true }, (err) => {
+  //   if (err) {
+  //     console.log(err);
+  //   } else {
+  //     fs.copyFile("picture.png", './files/' + req.body.username + '/picture.png');
+  //   }
+  // });
+
+  // move image
 
   console.log(`The app listening on port: ${port}`);
 });
