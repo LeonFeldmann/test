@@ -7,6 +7,12 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const merge = require('easy-pdf-merge');
 
+// const formData = require("express-form-data");
+// const os = require("os");
+const formidable = require("formidable");
+const http = require('http');
+const util = require('util');
+
 const Schemata = require('./models/user');
 const Document = require('./models/document');
 
@@ -15,7 +21,10 @@ const User = mongoose.model('user', Schemata.User);
 const Todo = mongoose.model('todo', Schemata.Todo);
 
 const app = express();
-
+//app.use(formidableMiddleware());
+let form = new formidable.IncomingForm();
+form.uploadDir = "./files";
+form.keepExtensions = true;
 
 const url = process.env.MONGODB_URI || 'mongodb://localhost/data';
 const db = mongoose.connection;
@@ -37,6 +46,11 @@ app.use(cors());
 //     origin: 'http://localhost:3000'
 //   }));
 // }
+
+// app.use(formData.format());
+// app.use(formData.stream());
+// app.use(formData.union());
+
 
 app.use(require('express-session')({
   secret: 'Anything at all',
@@ -185,6 +199,7 @@ app.get('/reset',(req, res, next) => checkBodyForValidAttributes(req, res, next,
 
 app.post('/test', (req, res) => {
   let dir = './files/';
+
   fs.readdir(dir, (err, files) => {
     if (err) {
       console.log(err);
@@ -195,7 +210,6 @@ app.post('/test', (req, res) => {
     }
   });
 
-  console.log("Success");
     res.sendStatus(200);
   });
 
@@ -211,10 +225,23 @@ app.post('/testAll', (req, res) => {
       }
     });
   
-    console.log("Success");
       res.sendStatus(200);
 });
 
+app.post('/testUser', validateToken, (req, res) => {
+  let dir = './files/' + res.locals.user.username;
+  fs.readdir(dir, (err, files) => {
+    if (err) {
+      console.log(err);
+    } else {
+      files.forEach(file => {
+        console.log(file);
+      });
+    }
+  });
+
+    res.sendStatus(200);
+});
 
 
 
@@ -315,7 +342,11 @@ app.post('/register', (req, res, next) => checkBodyForValidAttributes(req, res, 
       });
     }
     fs.mkdir(`./files/${req.body.username}`, { recursive: true }, (err) => {
-      if (err) console.log(err);
+      if (err) {
+        console.log(err);
+      } else {
+        fs.copyFile("picture.png", './files/' + req.body.username + '/picture.png');
+      }
     });
     res.status(201).json(doc);
   });
@@ -435,7 +466,7 @@ app.post('/changePW', validateToken, (req, res, next) => checkBodyForValidAttrib
 });
 
 app.post('/deleteUser', validateToken, (req, res) => {
-
+  console.log("Deleting user");
   // clean db
   User.deleteOne({"_id": res.locals.user._id}, function(err) {
     if (err) {
@@ -477,45 +508,50 @@ app.post('/deleteUser', validateToken, (req, res) => {
 
 });
 
-let mime = {
-  html: 'text/html',
-  txt: 'text/plain',
-  css: 'text/css',
-  gif: 'image/gif',
-  jpg: 'image/jpeg',
-  png: 'image/png',
-  svg: 'image/svg+xml',
-  js: 'application/javascript'
-};
-
 app.get('/userPicture', validateToken, (req, res) => {
 
-//   let file = res.locals.user.picture;
-//   var type = mime[path.extname(file).slice(1)] || 'text/plain';
-//   var s = fs.createReadStream(file);
-//   s.on('open', function () {
-//     res.set('Content-Type', type);
-//     s.pipe(res);
-// });
-// s.on('error', function () {
-//     res.set('Content-Type', 'text/plain');
-//     res.status(404).end('Not found');
-// });
-// console.log(res.locals.user.picture);
-// res.sendFile("WebFileViewerProject/default.png");
+let picturePath = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
+if (picturePath.length > 0) {
 
-//res.sendFile(res.locals.user.picture);
-//res.send(200);
+  res.sendFile("./files/" + res.locals.user.username + "/" + picturePath[0], {root:'.'});
 
-
+} else {
+  console.log("Error finding picture");
+  res.sendStatus(500);
+}
 
 });
 
-app.post('/userPicture', validateToken, (req, res) => {
+app.post('/updatePicture', validateToken, (req, res) => {
 
-  
+  form.uploadDir = "./files/" + res.locals.user.username;
 
+
+  form.parse(req, function(err, file) {
+    console.log(file.image.path);
+    let filePath = file.image.path;
+    let fileName = file.image.name;
+    let oldPictureName = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
+    console.log(oldPictureName);
+    if (oldPictureName.length > 0) {
+
+      fs.unlink("./files/" + res.locals.user.username + "/" + oldPictureName);
+      fs.rename(filePath, form.uploadDir + "/" + fileName);
+
+
+      // res.writeHead(200, {'content-type': 'text/plain'});
+      // res.write('received upload:\n\n');
+      // res.end(util.inspect({fields: fields, file: file}));
+      res.sendStatus(200);
+
+    } else {
+      res.sendStatus(500);
+    }
+
+   
+    });
 });
+
 
 // send pdf matching the id
 app.get('/documentPDF/:id', validateToken, (req, res) => {
@@ -582,46 +618,9 @@ app.get('/documents', validateToken, async (req, res) => {
   res.send(body);
 });
 
-// eslint-disable-next-line max-len
-/**
- * @param  {} user
- * @param  {} yearvar
- * @param  {} monthvar
- * @param  {} institutionvar
- * @param  {} importancevar
- * @param  {} descriptionvar
- * @param  {} filePathvar
- */
-function makedbEntry(user, yearvar, monthvar, institutionvar, importancevar, descriptionvar, titlevar, filePathvar, userIDvar) {
-  console.log("in function");
-  const doc = new Document({
-    year: yearvar,
-    month: monthvar,
-    institution: institutionvar,
-    importance: importancevar,
-    description: descriptionvar,
-    filePath: filePathvar,
-    title: titlevar,
-    user: userIDvar,
-  });
-  //console.log(user);
-  console.log(filePathvar);
-  doc.save((err, document) => {
-    if (err) {
-      console.log('Error adding to DB');
-      res.status(500).json({ "error": "While writing the entry to the db the following error occured: " + err});
-    } else {
-      console.log('Successfully saved doc to db');
-    }
-    console.log(document);
-  });
-}
-
-
 let currentFile = null;
 let currentFileCount = 6;
 
-// receive specifications after sending pdf
 app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['year', 'month', 'institution', 'importance']), validateToken, async (req, res) => {
   const { year } = req.body;
   const { month } = req.body;
@@ -630,54 +629,52 @@ app.post('/currentDocumentData', (req, res, next) => checkBodyForValidAttributes
   const { description } = req.body;
   const { title } = req.body;
   const dirPath = './files/' + res.locals.user.username + '/';
-  //const dirPath = './files/joja/';
   const filePrefix = year + '-' + month + '-' + institution + '-' + title;
   console.log("Current user is: " + res.locals.user.username);
 
   fs.readdir(dirPath, (err, files) => {
-      if (err) {
-        console.log(err);
-    
-      } else {
-        //console.log(files);
-        let newFilename = filePrefix + '.pdf';
-        let foundDuplicate = false;
-        for(let a = 0; a < 1000; a++) {
-          foundDuplicate = false;
-          //newFilename = filePrefix + '.pdf';
-          if(a > 0) {
-            newFilename = filePrefix + a + '.pdf';
-          }
-          // eslint-disable-next-line no-loop-func
-          files.forEach(filename => {
-            //console.log('Comparing ' + filename + ' to ' + newFilename);
-            if (filename === newFilename) {
-              //console.log('duplicate found');
-              foundDuplicate = true;
-            }
-          });
-          if (!foundDuplicate) {
-            break;
-          }
+    if (err) {
+      console.log(err);
+    } else {
+      //console.log(files);
+      let newFilename = filePrefix + '.pdf';
+      let foundDuplicate = false;
+      for(let a = 0; a < 1000; a++) {
+        foundDuplicate = false;
+        //newFilename = filePrefix + '.pdf';
+        if(a > 0) {
+          newFilename = filePrefix + a + '.pdf';
         }
-        let generatedFilename = dirPath + newFilename;
-        let newFilesDir = "./newFiles";
-        console.log("Generated filename: " + generatedFilename);
+        // eslint-disable-next-line no-loop-func
+        files.forEach(filename => {
+        //console.log('Comparing ' + filename + ' to ' + newFilename);
+          if (filename === newFilename) {
+            //console.log('duplicate found');
+            foundDuplicate = true;
+          }
+        });
+        if (!foundDuplicate) {
+          break;
+        }
+      }
+      let generatedFilename = dirPath + newFilename;
+      let newFilesDir = "./newFiles";
+      console.log("Generated filename: " + generatedFilename);
 
-        if (mergedFileToEdit) {
-          fs.copyFile(newFilesDir + "/newMergedPDF.pdf", generatedFilename, (error) => {  
-            if (error) {
-              console.log(err);
-              res.status(500).json({ "error": "Error while moving the file"});
-            } else {
-              console.log('Success');
-              //console.log(destinationDirectory + newFilename);
-            }
-            mergedFileToEdit = false;
-            fs.remove('./newFiles/newMergedPDF.pdf', (err) => {
-              if (err) {
-                console.error(err);
-                return;
+      if (mergedFileToEdit) {
+        fs.copyFile(newFilesDir + "/newMergedPDF.pdf", generatedFilename, (error) => {  
+          if (error) {
+            console.log(err);
+            res.status(500).json({ "error": "Error while moving the file"});
+          } else {
+            console.log('Success');
+            //console.log(destinationDirectory + newFilename);
+          }
+          mergedFileToEdit = false;
+          fs.remove('./newFiles/newMergedPDF.pdf', (err) => {
+            if (err) {
+              console.error(err);
+              return;
               }
             });
           });
@@ -783,88 +780,50 @@ app.get('/importDocuments', validateToken, (req, res) => {
 
 });
 
-
-
-app.get('/todos', validateToken, (req, res) => {
-  
-  Todo.find({"user":res.locals.user._id},{"user":false, "__v":false}, (err, todos) => {
-  
-    if (err) {
-      console.log(err);
-      res.sendStatus(500);
-    } else {
-      res.status(200).json({"todos" : todos});
-    }
+// eslint-disable-next-line max-len
+/**
+ * @param  {} user
+ * @param  {} yearvar
+ * @param  {} monthvar
+ * @param  {} institutionvar
+ * @param  {} importancevar
+ * @param  {} descriptionvar
+ * @param  {} filePathvar
+ */
+function makedbEntry(user, yearvar, monthvar, institutionvar, importancevar, descriptionvar, titlevar, filePathvar, userIDvar) {
+  console.log("in function");
+  const doc = new Document({
+    year: yearvar,
+    month: monthvar,
+    institution: institutionvar,
+    importance: importancevar,
+    description: descriptionvar,
+    filePath: filePathvar,
+    title: titlevar,
+    user: userIDvar,
   });
-  
-});
-
-app.post('/createTodo', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['todoTitle']), (req, res) => {
-
-  let todo = new Todo({
-    "title" : req.body.todoTitle,
-    "marked" : false,
-    "user" : res.locals.user._id,
-  });
-
-  todo.save((err, todo) => {
+  //console.log(user);
+  console.log(filePathvar);
+  doc.save((err, document) => {
     if (err) {
       console.log('Error adding to DB');
       res.status(500).json({ "error": "While writing the entry to the db the following error occured: " + err});
     } else {
-      console.log('Successfully saved todo to db');
-      console.log(todo);
-      res.sendStatus(200);
+      console.log('Successfully saved doc to db');
     }
+    console.log(document);
   });
-
-});
-
-app.post('/deleteTodo', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['todoID']), (req, res) => {
-  Todo.findOneAndDelete({"_id":req.body.todoID, "user": res.locals.user._id}, (err) => {
-    if (err) {
-      console.log(err);
-      res.sendStatus(500);
-    } else {
-      res.sendStatus(200);
-    }
-  });
-
-});
-
-app.post('/markTodo', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['todoID']), (req, res) => {
-  
-  Todo.findOneAndUpdate({"_id":req.body.todoID, "user": res.locals.user._id},{"marked":true} , (err, doc) => {
-    if (err) {
-      console.log(err);
-      res.sendStatus(500);
-    } else {
-      console.log(doc);
-      res.sendStatus(200);
-    }
-  });
-
-});
-
-app.post('/unmarkTodo', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['todoID']), (req, res) => {
-  
-  Todo.findOneAndUpdate({"_id":req.body.todoID, "user": res.locals.user._id},{"marked":false} , (err, doc) => {
-    if (err) {
-      console.log(err);
-      res.sendStatus(500);
-    } else {
-      console.log(doc);
-      res.sendStatus(200);
-    }
-  });
-
-});
+}
 
 
 
 
-require('./app/routes')(app, {});
+
+
+
+
 require('./app/routes/institution_routes')(app, validateToken, checkBodyForValidAttributes);
+require('./app/routes/todo_routes')(app, validateToken, checkBodyForValidAttributes);
 
 
 app.listen(port, () => {

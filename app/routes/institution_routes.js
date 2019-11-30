@@ -163,15 +163,15 @@ const User = mongoose.model('user', Schemata.User);
                 res.status(404).json({ "error": "This id is not associated with any existing document"});
             } else {
                 console.log(document);
-                let institutionToAdd = req.body.institution;
+                let institutionToDelete = req.body.institution;
                 let institutionsArray = document.institution;
                 let institutionFound = false;
                 let indexFound = null;
               
                 for (let i = 0; i < institutionsArray.length; i++) 
                 {
-                    console.log("Comparing "+ institutionsArray[i] + " to " + institutionToAdd);
-                    if (institutionsArray[i] == institutionToAdd) {
+                    console.log("Comparing "+ institutionsArray[i] + " to " + institutionToDelete);
+                    if (institutionsArray[i] == institutionToDelete) {
                         institutionFound = true;
                         indexFound = i;
                         break;
@@ -186,7 +186,7 @@ const User = mongoose.model('user', Schemata.User);
                             res.status(500).json({ "error" : err });
                         } else {
                             console.log(doc);
-                        res.status(200).json({ "Message" : "Institution " + institutionToAdd + " removed from document: " + id });
+                        res.status(200).json({ "Message" : "Institution " + institutionToDelete + " removed from document: " + id });
                         }
                     });
             
