@@ -620,22 +620,22 @@ app.post('/updatePicture', validateToken, (req, res) => {
   form.uploadDir = "./files/" + res.locals.user.username;
 
   form.parse(req, function(err, file) {
-    console.log(file.image.path);
+    if (err) {
+      console.log(err);
+      res.sendStatus(500);
+    } else if (oldPictureName.length > 0) {
+      console.log(file.image);
+      console.log(file.image.path);
     let filePath = file.image.path;
     let fileName = file.image.name;
     let oldPictureName = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
     console.log(oldPictureName);
-    if (oldPictureName.length > 0) {
+ 
+    fs.unlink("./files/" + res.locals.user.username + "/" + oldPictureName);
+    fs.rename(filePath, form.uploadDir + "/" + fileName);
 
-      fs.unlink("./files/" + res.locals.user.username + "/" + oldPictureName);
-      fs.rename(filePath, form.uploadDir + "/" + fileName);
-
-      res.sendStatus(200);
-
-    } else {
-      res.sendStatus(500);
+    res.sendStatus(200);
     }
-
    
     });
 });
@@ -721,6 +721,7 @@ app.post('/currentDocumentData', validateToken, (req, res, next) => checkBodyFor
   const filePrefix = year + '-' + month + '-' + institution + '-' + title;
   console.log("Current user is: " + res.locals.user.username);
 
+  
   fs.readdir(dirPath, (err, files) => {
     if (err) {
       console.log(err);
@@ -791,27 +792,7 @@ app.post('/currentDocumentData', validateToken, (req, res, next) => checkBodyFor
                   // console.log(files.length);
                   if(err) {
                     console.log(err);
-                  } else if (mergedFileToEdit) {
-
-                    let index = 6 - currentFileCount;
-                    let fileToSend = newFilesDir + '/' + files[index];
-                    const stream = fs.createReadStream(fileToSend);
-                    res.writeHead(200, {
-                      'Content-disposition': `attachment; filename='${encodeURIComponent(path.basename(fileToSend))}'`,
-                      'Content-type': 'application/pdf',
-                      'Access-Control-Allow-Origin': '*',
-                      'Access-Control-Allow-Methods': 'POST, GET',
-                      'fileCount': files.length,
-                      'Access-Control-Expose-Headers': '*',
-                    });
-                     stream.pipe(res);
-                     console.log("new Currentfile is: " + currentFile);
-                     mergedFileToEdit = false;
-                     if (files.length > 0 && currentFile == null) {
-                      currentFile = files[index];
-                     }
-                    
-                  }  else if (files.length == 0 || currentFileCount == 0) {
+                  } else if (files.length == 0 || currentFileCount == 0) {
                     currentFile = null;
                     console.log("New file count is: " + currentFileCount);
 
