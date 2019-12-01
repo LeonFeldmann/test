@@ -632,38 +632,38 @@ app.post('/updatePicture', validateToken, (req, res) => {
     form.parse(req, (err, fields, file) => {
       console.log("Inside form.parse");
 
-      console.log("This is inside the callback " + picturePathArray[0]);
-      if (err) {
-        console.log(err);
-      } else if (picturePathArray[0] !== null) {
-        console.log("inside the inner if statement");
-        let filePath = file.image.path;
-        let fileName = file.image.name;
-        if (fs.existsSync("./files/" + res.locals.user.username + "/" + picturePathArray[0])) {
-          console.log("./files/" + res.locals.user.username + "/" + picturePathArray[0] + " exists");
-          fs.unlink("./files/" + res.locals.user.username + "/" + picturePathArray[0], (err) => {
-            if (err) 
-              console.log(err);
-          }); 
-          console.log("Deleted old file");
-        } else {
-          console.log("./files/" + res.locals.user.username + "/" + picturePathArray[0] + " does not exist, no deletion possible");
-        }
-        if (fs.existsSync(filePath)) {
-        fs.rename(filePath, form.uploadDir + "/" + fileName, (err) => {
-          if (err)
-          console.log(err);
-        });
-        console.log("Renamed new file");
-        } else {
-          console.log(filePath + " does not exist, no renaming possible");
-        }
-         picturePathArray[0] = null;  
-      }
+      // console.log("This is inside the callback " + picturePathArray[0]);
+      // if (err) {
+      //   console.log(err);
+      // } else if (picturePathArray[0] !== null) {
+      //   console.log("inside the inner if statement");
+      //   let filePath = file.image.path;
+      //   let fileName = file.image.name;
+      //   if (fs.existsSync("./files/" + res.locals.user.username + "/" + picturePathArray[0])) {
+      //     console.log("./files/" + res.locals.user.username + "/" + picturePathArray[0] + " exists");
+      //     fs.unlink("./files/" + res.locals.user.username + "/" + picturePathArray[0], (err) => {
+      //       if (err) 
+      //         console.log(err);
+      //     }); 
+      //     console.log("Deleted old file");
+      //   } else {
+      //     console.log("./files/" + res.locals.user.username + "/" + picturePathArray[0] + " does not exist, no deletion possible");
+      //   }
+      //   if (fs.existsSync(filePath)) {
+      //   fs.rename(filePath, form.uploadDir + "/" + fileName, (err) => {
+      //     if (err)
+      //     console.log(err);
+      //   });
+      //   console.log("Renamed new file");
+      //   } else {
+      //     console.log(filePath + " does not exist, no renaming possible");
+      //   }
+      //    picturePathArray[0] = null;  
+      // }
   
     });
 
-
+    console.log("After the form .parse");
 
     res.sendStatus(200);
   } else {
