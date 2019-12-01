@@ -628,11 +628,15 @@ app.post('/updatePicture', validateToken, (req, res) => {
 
   if (picturePathArray.length > 0) {
   console.log("Inside first if");
+
     form.parse(req, (err, fields, file) => {
+      console.log("Inside form.parse");
+
       console.log("This is inside the callback " + picturePathArray[0]);
       if (err) {
         console.log(err);
       } else if (picturePathArray[0] !== null) {
+        console.log("inside the inner if statement");
         let filePath = file.image.path;
         let fileName = file.image.name;
         if (fs.existsSync("./files/" + res.locals.user.username + "/" + picturePathArray[0])) {
@@ -658,6 +662,9 @@ app.post('/updatePicture', validateToken, (req, res) => {
       }
   
     });
+
+
+
     res.sendStatus(200);
   } else {
     res.sendStatus(500);
