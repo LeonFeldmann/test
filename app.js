@@ -630,9 +630,15 @@ app.post('/updatePicture', validateToken, (req, res) => {
         //console.log("This is inside the callback " + oldPictureName);
         let filePath = file.image.path;
         let fileName = file.image.name;
-        fs.unlink("./files/" + res.locals.user.username + "/" + picturePathArray);
+        fs.unlink("./files/" + res.locals.user.username + "/" + picturePathArray, (err) => {
+          if (err) 
+            console.log(err);
+        });
         //console.log("Deleted old file");
-        fs.rename(filePath, form.uploadDir + "/" + fileName);
+        fs.rename(filePath, form.uploadDir + "/" + fileName, (err) => {
+          if (err)
+          console.log(err);
+        });
         //console.log("Renamed new file");
          picturePathArray = null;  
       }
