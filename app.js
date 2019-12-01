@@ -23,9 +23,6 @@ const User = mongoose.model('user', Schemata.User);
 const Todo = mongoose.model('todo', Schemata.Todo);
 
 const app = express();
-let form = new formidable.IncomingForm();
-form.uploadDir = "./files";
-form.keepExtensions = true;
 
 const url = process.env.MONGODB_URI || 'mongodb://localhost/data';
 const db = mongoose.connection;
@@ -621,16 +618,19 @@ if (picturePath.length > 0) {
 
 app.post('/updatePicture', validateToken, (req, res) => {
 
+  let form = new formidable.IncomingForm();
+  form.keepExtensions = true;
   form.uploadDir = "./files/" + res.locals.user.username;
-  
+  form.parse(req);
+
   let picturePathArray = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
   console.log(picturePathArray);
 
-  if (picturePathArray.length > 0) {
-  console.log("Inside first if");
+  // if (picturePathArray.length > 0) {
+  // console.log("Inside first if");
 
-    form.parse(req, (err, fields, file) => {
-      console.log("Inside form.parse");
+    //form.parse(req, (err, fields, file) => {
+      //console.log("Inside form.parse");
 
       // console.log("This is inside the callback " + picturePathArray[0]);
       // if (err) {
@@ -661,14 +661,14 @@ app.post('/updatePicture', validateToken, (req, res) => {
       //    picturePathArray[0] = null;  
       // }
   
-    });
+    //});
 
     console.log("After the form .parse");
 
     res.sendStatus(200);
-  } else {
-    res.sendStatus(500);
-  }
+  // } else {
+  //   res.sendStatus(500);
+  // }
  
 
 
