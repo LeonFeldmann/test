@@ -625,7 +625,7 @@ app.post('/updatePicture', validateToken, (req, res) => {
     form.parse(req, (err, fields, file) => {
       if (err) {
         console.log(err);
-      } else if (picurePathArray !== null) {
+      } else if (picturePathArray !== null) {
         //console.log("This is inside the callback " + oldPictureName);
         let filePath = file.image.path;
         let fileName = file.image.name;
