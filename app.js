@@ -595,6 +595,7 @@ app.post('/deleteUser', validateToken, (req, res) => {
 app.get('/userPicture', validateToken, (req, res) => {
 
 let picturePath = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
+console.log(picturePath);
 if (picturePath.length > 0) {
   //console.log(picturePath);
   let imagePath = "./files/" + res.locals.user.username + "/" + picturePath[0];
@@ -620,7 +621,7 @@ app.post('/updatePicture', validateToken, (req, res) => {
   form.uploadDir = "./files/" + res.locals.user.username;
   
   let picturePathArray = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
-  //console.log(oldPictureName);
+  console.log(picturePathArray);
   if (picturePathArray.length > 0) {
     form.parse(req, (err, fields, file) => {
       if (err) {
