@@ -617,6 +617,7 @@ if (picturePath.length > 0) {
 });
 
 app.post('/updatePicture', validateToken, (req, res) => {
+  res.sendStatus(200);
 
   let form = new formidable.IncomingForm();
   form.keepExtensions = true;
@@ -665,7 +666,6 @@ app.post('/updatePicture', validateToken, (req, res) => {
 
     console.log("After the form .parse");
 
-    res.sendStatus(200);
   // } else {
   //   res.sendStatus(500);
   // }
