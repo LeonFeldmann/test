@@ -432,6 +432,7 @@ app.post('/register', (req, res, next) => checkBodyForValidAttributes(req, res, 
         console.log(err);
       } else {
         fs.copyFile("picture.png", './files/' + req.body.username + '/picture.png');
+        console.log("User dir was initialized successfully");
       }
     });
     res.status(201).json(doc);
@@ -624,8 +625,9 @@ app.post('/updatePicture', validateToken, (req, res) => {
   
   let picturePathArray = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
   console.log(picturePathArray);
-  if (picturePathArray.length > 0) {
 
+  if (picturePathArray.length > 0) {
+  console.log("Inside first if");
     form.parse(req, (err, fields, file) => {
       console.log("This is inside the callback " + picturePathArray[0]);
       if (err) {
