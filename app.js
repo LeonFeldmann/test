@@ -12,6 +12,8 @@ const merge = require('easy-pdf-merge');
 const formidable = require("formidable");
 const http = require('http');
 const util = require('util');
+const multer = require('multer');
+const upload = multer({dest: "newFiles"});
 
 const Schemata = require('./models/user');
 const Document = require('./models/document');
@@ -623,24 +625,34 @@ app.post('/updatePicture', validateToken, (req, res) => {
   let picturePathArray = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
   console.log(picturePathArray);
   if (picturePathArray.length > 0) {
+
     form.parse(req, (err, fields, file) => {
+      console.log("This is inside the callback " + picturePathArray[0]);
       if (err) {
         console.log(err);
-      } else if (picturePathArray !== null) {
-        //console.log("This is inside the callback " + oldPictureName);
+      } else if (picturePathArray[0] !== null) {
         let filePath = file.image.path;
         let fileName = file.image.name;
-        fs.unlink("./files/" + res.locals.user.username + "/" + picturePathArray, (err) => {
-          if (err) 
-            console.log(err);
-        });
-        //console.log("Deleted old file");
+        if (fs.existsSync("./files/" + res.locals.user.username + "/" + picturePathArray[0])) {
+          console.log("./files/" + res.locals.user.username + "/" + picturePathArray[0] + " exists");
+          fs.unlink("./files/" + res.locals.user.username + "/" + picturePathArray[0], (err) => {
+            if (err) 
+              console.log(err);
+          }); 
+          console.log("Deleted old file");
+        } else {
+          console.log("./files/" + res.locals.user.username + "/" + picturePathArray[0] + " does not exist, no deletion possible");
+        }
+        if (fs.existsSync(filePath)) {
         fs.rename(filePath, form.uploadDir + "/" + fileName, (err) => {
           if (err)
           console.log(err);
         });
-        //console.log("Renamed new file");
-         picturePathArray = null;  
+        console.log("Renamed new file");
+        } else {
+          console.log(filePath + " does not exist, no renaming possible");
+        }
+         picturePathArray[0] = null;  
       }
   
     });
@@ -649,6 +661,7 @@ app.post('/updatePicture', validateToken, (req, res) => {
     res.sendStatus(500);
   }
  
+
 
   
 
