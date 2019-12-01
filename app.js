@@ -596,7 +596,7 @@ app.get('/userPicture', validateToken, (req, res) => {
 
 let picturePath = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
 if (picturePath.length > 0) {
-  console.log(picturePath);
+  //console.log(picturePath);
   let imagePath = "./files/" + res.locals.user.username + "/" + picturePath[0];
   //res.sendFile("./files/" + res.locals.user.username + "/" + picturePath[0], {root:'.'});
   const stream = fs.createReadStream(imagePath);
@@ -618,30 +618,33 @@ if (picturePath.length > 0) {
 app.post('/updatePicture', validateToken, (req, res) => {
 
   form.uploadDir = "./files/" + res.locals.user.username;
-
-  form.parse(req, function(err, file) {
-    if (err) {
-      console.log(err);
-      res.sendStatus(500);
-    } else if (oldPictureName.length > 0) {
-      console.log(file.image);
-      if (file.image.hasOwnProperty('path')) {
-        console.log(file.image.path);
+  
+  let picurePathArray = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
+  //console.log(oldPictureName);
+  if (picturePathArray.length > 0) {
+    form.parse(req, (err, fields, file) => {
+      if (err) {
+        console.log(err);
+      } else if (picurePathArray !== null) {
+        //console.log("This is inside the callback " + oldPictureName);
         let filePath = file.image.path;
         let fileName = file.image.name;
-        let oldPictureName = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
-        console.log(oldPictureName);
-     
-        fs.unlink("./files/" + res.locals.user.username + "/" + oldPictureName);
+        fs.unlink("./files/" + res.locals.user.username + "/" + picurePathArray);
+        //console.log("Deleted old file");
         fs.rename(filePath, form.uploadDir + "/" + fileName);
-        res.sendStatus(200);
-      } else {
-        console.log("Property path does not exist");
-        res.status(500).json({ "error": "Could not accept the picture because of some issue"});
+        //console.log("Renamed new file");
+         picurePathArray = null;  
       }
-    }
-   
+  
     });
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(500);
+  }
+ 
+
+  
+
 });
 
 
