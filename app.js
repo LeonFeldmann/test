@@ -619,7 +619,7 @@ app.post('/updatePicture', validateToken, (req, res) => {
 
   form.uploadDir = "./files/" + res.locals.user.username;
   
-  let picurePathArray = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
+  let picturePathArray = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
   //console.log(oldPictureName);
   if (picturePathArray.length > 0) {
     form.parse(req, (err, fields, file) => {
@@ -629,11 +629,11 @@ app.post('/updatePicture', validateToken, (req, res) => {
         //console.log("This is inside the callback " + oldPictureName);
         let filePath = file.image.path;
         let fileName = file.image.name;
-        fs.unlink("./files/" + res.locals.user.username + "/" + picurePathArray);
+        fs.unlink("./files/" + res.locals.user.username + "/" + picturePathArray);
         //console.log("Deleted old file");
         fs.rename(filePath, form.uploadDir + "/" + fileName);
         //console.log("Renamed new file");
-         picurePathArray = null;  
+         picturePathArray = null;  
       }
   
     });
