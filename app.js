@@ -619,66 +619,73 @@ if (picturePath.length > 0) {
 
 });
 
-function modifyDir(uploadDir, path, username) {
- fs.readdir(uploadDir, (err, files) => {
-    if (err) {
-      console.log(err);
-    } else {
-      files.forEach(file => {
-        console.log(file);
-      });
-    }
+
+function checkToken(token) {
+  
+  jwt.verify(token, 'secret', (err, decoded) => {
+    if (err) return res.status(500).send({ auth: false, message: 'Failed to authenticate token' });
+
+    // eslint-disable-next-line consistent-return
+    User.findById(decoded.userID, (error, user) => {
+      if (error) return res.status(500).send('There was a problem finding the user.');
+      if (!user) return res.status(404).send('No user found.');
+      res.locals.user = user;
+    });
   });
 
-
-  fs.unlink("./files/" + username + "/" + "picture.png");
-  fs.rename(path, uploadDir + "/" + "picture.png");
 }
 
-app.post('/updatePicture', validateToken, (req, res) => {
+app.post('/updatePicture', upload.single('image'), (req, res) => {
+  console.log(req.body.user);
+  console.log(req.file);
+
+  if (req.hasOwnProperty("file")) {
+    fs.unlink("./files/" + req.body.user + "/" + "picture.png");
+    fs.move(req.file.path, "files/" + req.body.user + "/picture.png");
+  } else {
+    console.log("No file arrived");
+  }
+
+
+
+
+
+
+
+res.sendStatus(200);
+
+
+
+
+
+
+// multiparty implementation, does not work on heroku
 // ! watchout key is important = "image"
- 
-  let form = new multiparty.Form();
-  form.uploadDir = "./files/" + res.locals.user.username;
 
-  form.parse(req, function(err, field, file) {
-    if (err) {
-      console.log(err);
-    } else {
-      console.log(file.image[0].path);
-      // if (fs.existsSync(file.image[0].path)) {
-      //   setTimeout(() => {
-      //     console.log("now function is called");
-      //     modifyDir(form.uploadDir, file.image[0].path, res.locals.user.username);
-      // }, 1000);
-      // }
-      if (fs.existsSync(form.uploadDir + "/" + "picture.png")) {
-        fs.unlink("./files/" + res.locals.user.username + "/" + "picture.png");
-       } else {
-          console.log("File to be deleted did not exist");
-        }
+  // let form = new multiparty.Form();
+  // form.uploadDir = "./files/" + res.locals.user.username;
 
-      if (fs.existsSync(file.image[0].path)) {
-        fs.rename(file.image[0].path, form.uploadDir + "/" + "picture.png");
-      } else {
-        console.log("File to be renamed did not exist");
-      }
+  // form.parse(req, function(err, field, file) {
+  //   if (err) {
+  //     console.log(err);
+  //   } else {
+  //     console.log(file.image[0].path);
+  
+  //     if (fs.existsSync(form.uploadDir + "/" + "picture.png")) {
+  //       fs.unlink("./files/" + res.locals.user.username + "/" + "picture.png");
+  //      } else {
+  //         console.log("File to be deleted did not exist");
+  //       }
 
-
-    }
-  //let oldPicture = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
-
-  // let intervalID = setInterval(() => {
-  //   console.log("Interval called");
-  //       if (fs.existsSync(form.uploadDir + "/" + file.image[0].path)) {
-  //     fs.rename(form.uploadDir + "/" + file.image[0].path, form.uploadDir + "/" + "picture.png");
-  //     clearInterval(intervalID);
+  //     if (fs.existsSync(file.image[0].path)) {
+  //       fs.rename(file.image[0].path, form.uploadDir + "/" + "picture.png");
+  //     } else {
+  //       console.log("File to be renamed did not exist");
+  //     }
   //   }
-  // }, 200);
- 
 
-  });
-  res.sendStatus(200);
+  // });
+
 
 
 
