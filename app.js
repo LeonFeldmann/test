@@ -14,6 +14,9 @@ const http = require('http');
 const util = require('util');
 const multer = require('multer');
 const upload = multer({dest: "newFiles"});
+const parseBody = require('@frameworkless/bodyparser');
+const BusBoy = require('busboy');
+const multiparty = require('multiparty');
 
 const Schemata = require('./models/user');
 const Document = require('./models/document');
@@ -616,16 +619,103 @@ if (picturePath.length > 0) {
 
 });
 
+function modifyDir(uploadDir, path, username) {
+ fs.readdir(uploadDir, (err, files) => {
+    if (err) {
+      console.log(err);
+    } else {
+      files.forEach(file => {
+        console.log(file);
+      });
+    }
+  });
+
+
+  fs.unlink("./files/" + username + "/" + "picture.png");
+  fs.rename(path, uploadDir + "/" + "picture.png");
+}
+
 app.post('/updatePicture', validateToken, (req, res) => {
+// ! watchout key is important = "image"
+ 
+  let form = new multiparty.Form();
+  form.uploadDir = "./files/" + res.locals.user.username;
+
+  form.parse(req, function(err, field, file) {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log(file.image[0].path);
+      // if (fs.existsSync(file.image[0].path)) {
+      //   setTimeout(() => {
+      //     console.log("now function is called");
+      //     modifyDir(form.uploadDir, file.image[0].path, res.locals.user.username);
+      // }, 1000);
+      // }
+      if (fs.existsSync(form.uploadDir + "/" + "picture.png")) {
+        fs.unlink("./files/" + res.locals.user.username + "/" + "picture.png");
+       } else {
+          console.log("File to be deleted did not exist");
+        }
+
+      if (fs.existsSync(file.image[0].path)) {
+        fs.rename(file.image[0].path, form.uploadDir + "/" + "picture.png");
+      } else {
+        console.log("File to be renamed did not exist");
+      }
+
+
+    }
+  //let oldPicture = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
+
+  // let intervalID = setInterval(() => {
+  //   console.log("Interval called");
+  //       if (fs.existsSync(form.uploadDir + "/" + file.image[0].path)) {
+  //     fs.rename(form.uploadDir + "/" + file.image[0].path, form.uploadDir + "/" + "picture.png");
+  //     clearInterval(intervalID);
+  //   }
+  // }, 200);
+ 
+
+  });
   res.sendStatus(200);
 
-  let form = new formidable.IncomingForm();
-  form.keepExtensions = true;
-  form.uploadDir = "./files/" + res.locals.user.username;
-  form.parse(req);
 
-  let picturePathArray = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
-  console.log(picturePathArray);
+
+
+
+
+
+
+  // var busboy = new BusBoy({ "headers": req.headers });
+
+  // busboy.on('file', function(fieldname, file, filename, endocing, mimetype) {
+
+  //   file.pipe(fs.createWriteStream("./files/" + res.locals.user.username + "/" + "example.png"));
+  //   console.log(filename);
+  // });
+
+  // busboy.on('finish', function() {
+  //   res.writeHead(200, { 'Connection': 'close' });
+  //   res.end("That's all folks!");
+  // });
+
+
+  // let form = new formidable.IncomingForm();
+  // form.keepExtensions = true;
+  // form.uploadDir = "./files/" + res.locals.user.username;
+  // form.parse(req);
+
+  // let oldPicture = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
+  // console.log(oldPicture);
+  // let newPicture = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('upload_'));
+  // console.log(newPicture);
+
+   
+  // setTimeout(() => {
+  //   fs.unlink("./files/" + res.locals.user.username + "/" + oldPicture[0]);
+  //   fs.rename(form.uploadDir + "/" + newPicture[0], form.uploadDir + "/" + "picture.png");
+  // }, 2000);
 
   // if (picturePathArray.length > 0) {
   // console.log("Inside first if");
@@ -664,7 +754,8 @@ app.post('/updatePicture', validateToken, (req, res) => {
   
     //});
 
-    console.log("After the form .parse");
+    //console.log("After the form .parse");
+    //res.sendStatus(200);
 
   // } else {
   //   res.sendStatus(500);
