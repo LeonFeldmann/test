@@ -361,7 +361,8 @@ function checkBodyForValidAttributes(req, res, next, attributes) {
  */
 // eslint-disable-next-line consistent-return
 function validateToken(req, res, next) {
-  const token = req.headers['x-access-token'];
+ 
+    const token = req.headers['x-access-token'];
   if (!token) return res.status(401).send({ auth: false, message: 'No token provided' });
   // eslint-disable-next-line consistent-return
   jwt.verify(token, 'secret', (err, decoded) => {
@@ -375,6 +376,9 @@ function validateToken(req, res, next) {
       next();
     });
   });
+
+
+
 }
 
 function checkUsernameAndEmail(req, res, next) {
@@ -635,27 +639,24 @@ function checkToken(token) {
 
 }
 
-app.post('/updatePicture', upload.single('image'), (req, res) => {
-  console.log(req.body.user);
-  console.log(req.file);
+app.post('/updatePicture', validateToken, upload.single('image'), (req, res) => {
+  //console.log(req.file);
+  let oldPicture = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
+
+
+  let rex = new RegExp(".*(\\.\\w+)");
+  let string = req.file.originalname;
+  let mime = string.match(rex)[1];
+  //console.log(mime);
 
   if (req.hasOwnProperty("file")) {
-    fs.unlink("./files/" + req.body.user + "/" + "picture.png");
-    fs.move(req.file.path, "files/" + req.body.user + "/picture.png");
+    fs.unlink("./files/" + res.locals.user.username + "/" + oldPicture);
+    fs.move(req.file.path, "files/" + res.locals.user.username + "/picture" + mime);
+    res.sendStatus(200);
   } else {
     console.log("No file arrived");
+    res.sendStatus(500);
   }
-
-
-
-
-
-
-
-res.sendStatus(200);
-
-
-
 
 
 
@@ -684,27 +685,6 @@ res.sendStatus(200);
   //     }
   //   }
 
-  // });
-
-
-
-
-
-
-
-
-
-  // var busboy = new BusBoy({ "headers": req.headers });
-
-  // busboy.on('file', function(fieldname, file, filename, endocing, mimetype) {
-
-  //   file.pipe(fs.createWriteStream("./files/" + res.locals.user.username + "/" + "example.png"));
-  //   console.log(filename);
-  // });
-
-  // busboy.on('finish', function() {
-  //   res.writeHead(200, { 'Connection': 'close' });
-  //   res.end("That's all folks!");
   // });
 
 
