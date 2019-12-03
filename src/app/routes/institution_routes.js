@@ -6,12 +6,13 @@ const User = mongoose.model('user', Schemata.User);
     
 
   
-
+    // send array of all institutions of current user
     app.get('/institutions', validateToken, (req, res) => {
         console.log(res.locals.user.institutions);
         res.send({ "institutions" : res.locals.user.institutions});
     });
 
+    // creates institution for current user
     app.post('/createInstitution', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['institution']), validateToken, (req, res) => {
 
         let query = {'_id':res.locals.user._id};
@@ -42,7 +43,7 @@ const User = mongoose.model('user', Schemata.User);
     
     });
             
-
+    // deletes institution from current user and from all documents where it is used in
     app.post('/deleteInstitution', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['institution']), validateToken, (req, res) => {
               
         let query = {'_id':res.locals.user._id};
@@ -113,7 +114,7 @@ const User = mongoose.model('user', Schemata.User);
         }
     });
             
-
+    // adds insitution(given by name) to document given by id
     app.post('/addInstitutionToDocument/:id', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['institution']), validateToken, (req, res) => {
         const { id } = req.params;
         Document.findById(id, 'institution', (err, document) => {
@@ -153,7 +154,7 @@ const User = mongoose.model('user', Schemata.User);
         });  
     });
             
-            
+    // deletes institution(given by name) from document given by id
     app.post('/deleteInstitutionFromDocument/:id', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['institution']), validateToken, (req, res) => {
                
         const { id } = req.params;
