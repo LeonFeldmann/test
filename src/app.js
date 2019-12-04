@@ -17,6 +17,7 @@ const upload = multer({dest: "newFiles"});
 const port = process.env.PORT || 3000;
 
 const app = express();
+const currentDir = './src';
 
 const url = process.env.MONGODB_URI || 'mongodb://localhost/data';
 const db = mongoose.connection;
@@ -36,10 +37,10 @@ app.use(require('express-session')({
   saveUninitialized: false,
 }));
 
-require('./app/routes/institution_routes')(app, validateToken, checkBodyForValidAttributes);
-require('./app/routes/todo_routes')(app, validateToken, checkBodyForValidAttributes);
-require('./app/routes/user_routes')(app, validateToken, checkBodyForValidAttributes);
-require('./app/routes/document_routes')(app, validateToken, checkBodyForValidAttributes);
+require('./app/routes/institution_routes')(app, validateToken, checkBodyForValidAttributes, currentDir);
+require('./app/routes/todo_routes')(app, validateToken, checkBodyForValidAttributes, currentDir);
+require('./app/routes/user_routes')(app, validateToken, checkBodyForValidAttributes, currentDir);
+require('./app/routes/document_routes')(app, validateToken, checkBodyForValidAttributes, currentDir);
 
 
 /**
@@ -126,24 +127,24 @@ function validateToken(req, res, next) {
 
 
 app.post('/test', (req, res) => {
-  let dir = './files/';
+  let dir = currentDir + '/files/';
 
 
-  // fs.readdir(dir, (err, files) => {
-  //   if (err) {
-  //     console.log(err);
-  //   } else {
-  //     files.forEach(file => {
-  //       console.log(file);
-  //     });
-  //   }
-  // });
+  fs.readdir(dir, (err, files) => {
+    if (err) {
+      console.log(err);
+    } else {
+      files.forEach(file => {
+        console.log(file);
+      });
+    }
+  });
 
     res.sendStatus(200);
   });
 
 app.post('/testAll', (req, res) => {
-    let dir = './';
+    let dir = currentDir;
     fs.readdir(dir, (err, files) => {
       if (err) {
         console.log(err);
@@ -158,7 +159,7 @@ app.post('/testAll', (req, res) => {
 });
 
 app.post('/testUser', validateToken, (req, res) => {
-  let dir = './files/' + res.locals.user.username;
+  let dir = currentDir + '/files/' + res.locals.user.username;
   fs.readdir(dir, (err, files) => {
     if (err) {
       console.log(err);

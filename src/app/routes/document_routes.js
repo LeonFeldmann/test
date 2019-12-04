@@ -1,4 +1,4 @@
-module.exports = function (app, validateToken, checkBodyForValidAttributes) {
+module.exports = function (app, validateToken, checkBodyForValidAttributes, currentDir) {
     const mongoose = require('mongoose');
     const document = require('../../models/document');
     const fs       = require('fs-extra');
@@ -128,6 +128,8 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
       if (err) {
         // console.log('Error getting document by id');
         res.status(404).json({ "error": "This id is not associated with any existing document"});
+      } else if(fs.existsSync(document.filePath)) {
+        res.status(500).json({ "error": "This document does not seem to exist anymore, probably because of a server restart"});
       } else {
         const stream = fs.createReadStream(document.filePath);
         res.writeHead(200, {
@@ -192,7 +194,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
         const { importance } = req.body;
         const { description } = req.body;
         const { title } = req.body;
-        const dirPath = './files/' + res.locals.user.username + '/';
+        const dirPath = currentDir + '/files/' + res.locals.user.username + '/';
         const filePrefix = year + '-' + month + '-' + institution + '-' + title;
         console.log("Current user is: " + res.locals.user.username);
     
@@ -233,7 +235,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
             }
             }
             let generatedFilename = dirPath + newFilename;
-            let newFilesDir = "./newFiles";
+            let newFilesDir = currentDir + "/newFiles";
             console.log("Generated filename: " + generatedFilename);
     
         if (isLocal) {
@@ -308,7 +310,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
     // start importing documents, send first pdf
     app.get('/importDocuments', validateToken, (req, res) => {
         
-        const newFilesDir = './newFiles';
+        const newFilesDir = currentDir + '/newFiles';
             // send next file
             fs.readdir(newFilesDir, (err, files) => {
             if(err) {
@@ -392,7 +394,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
         const { importance } = req.body;
         const { description } = req.body;
         const { title } = req.body;
-        const dirPath = './files/' + res.locals.user.username + '/';
+        const dirPath = currentDir + '/files/' + res.locals.user.username + '/';
         const filePrefix = year + '-' + month + '-' + institution + '-' + title;
         console.log("Current user is: " + res.locals.user.username);
         
@@ -420,7 +422,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
         if (idsAreValid) {
     
         // merging the pdfs
-            merge(pdfArray, "newFiles/newMergedPDF.pdf" , function(err) {
+            merge(pdfArray, currentDir + "/newFiles/newMergedPDF.pdf" , function(err) {
             if (err) {
             console.log(err);
             res.status(500).json({"error" : "Error merging pdfs"});
@@ -437,13 +439,13 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
             makedbEntry(year, month, institution, importance, description, title, generatedFilename.substr(2), res.locals.user._id);
     
             // move new file to fs
-            fs.copyFile("./newFiles/newMergedPDF.pdf", generatedFilename, (error) => {  
+            fs.copyFile(currentDir + "/newFiles/newMergedPDF.pdf", generatedFilename, (error) => {  
             if (error) {
                 console.log(err);
             } else {
                 console.log('Success');
             }
-            fs.remove('./newFiles/newMergedPDF.pdf', (err) => {
+            fs.remove(currentDir + '/newFiles/newMergedPDF.pdf', (err) => {
                 if (err) {
                 console.error(err);
                 return;

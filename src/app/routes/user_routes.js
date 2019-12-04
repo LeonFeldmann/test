@@ -1,4 +1,4 @@
-module.exports = function (app, validateToken, checkBodyForValidAttributes) {
+module.exports = function (app, validateToken, checkBodyForValidAttributes, currentDir) {
     const fs          = require('fs-extra');
     const jwt         = require('jsonwebtoken');
     const mongoose    = require('mongoose');
@@ -62,11 +62,11 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
     // send current user picture, default is provided
     app.get('/userPicture', validateToken, (req, res) => {
     
-        let picturePath = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
+        let picturePath = fs.readdirSync( currentDir + "/files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
         console.log(picturePath);
         if (picturePath.length > 0) {
         //console.log(picturePath);
-        let imagePath = "./files/" + res.locals.user.username + "/" + picturePath[0];
+        let imagePath = currentDir + "/files/" + res.locals.user.username + "/" + picturePath[0];
         //res.sendFile("./files/" + res.locals.user.username + "/" + picturePath[0], {root:'.'});
         const stream = fs.createReadStream(imagePath);
         res.writeHead(200, {
@@ -100,19 +100,19 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
         //console.log(newUser);
     
         promise.then((doc) => {
-        if (fs.existsSync('./files/' + req.body.username)) {
+        if (fs.existsSync(currentDir + '/files/' + req.body.username)) {
             //console.log("Directory already exists");
-            fs.remove('./files/' + req.body.username, function (err) {
+            fs.remove(currentDir + '/files/' + req.body.username, function (err) {
             if (err) {
                 console.log(err);
             } 
             });
         }
-        fs.mkdir(`./files/${req.body.username}`, { recursive: true }, (err) => {
+        fs.mkdir(currentDir + `/files/${req.body.username}`, { recursive: true }, (err) => {
             if (err) {
             console.log(err);
             } else {
-            fs.copyFile("picture.png", './files/' + req.body.username + '/picture.png');
+            fs.copyFile("picture.png", currentDir + '/files/' + req.body.username + '/picture.png');
             console.log("User dir was initialized successfully");
             }
         });
@@ -124,10 +124,10 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
     // receive credentials and send jwt token encoded with user
     app.post('/login', (req, res, next) => checkBodyForValidAttributes(req, res, next, ['userIdentifier', 'password']), async (req, res) => {
   // make sure files folder is set up
-  if (fs.existsSync('./files/')) {
+  if (fs.existsSync(currentDir + '/files/')) {
     console.log("Files folder aready existing");
   } else {
-  fs.mkdir('./files/', { recursive: true }, (err) => {
+  fs.mkdir(currentDir + '/files/', { recursive: true }, (err) => {
     if (err) console.log(err);
   });
   console.log("Files folder created");
@@ -242,15 +242,15 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
     // update userpicture located in user's directory
     app.post('/updatePicture', validateToken, upload.single('image'), (req, res) => {
         //console.log(req.file);
-        let oldPicture = fs.readdirSync("./files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
+        let oldPicture = fs.readdirSync(currentDir + "/files/" + res.locals.user.username).filter(fn => fn.startsWith('picture.'));
     
         let rex = new RegExp(".*(\\.\\w+)");
         let string = req.file.originalname;
         let mime = string.match(rex)[1];
     
         if (req.hasOwnProperty("file")) {
-        fs.unlink("./files/" + res.locals.user.username + "/" + oldPicture);
-        fs.move(req.file.path, "files/" + res.locals.user.username + "/picture" + mime);
+        fs.unlink(currentDir + "/files/" + res.locals.user.username + "/" + oldPicture);
+        fs.move(req.file.path, currentDir + "/files/" + res.locals.user.username + "/picture" + mime);
         res.sendStatus(200);
         } else {
         console.log("No file arrived");
@@ -358,14 +358,14 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes) {
         res.sendStatus(401);
         return;
         }
-        fs.readdir('./files', (err, dirs) => {
+        fs.readdir(currentDir + '/files', (err, dirs) => {
         console.log(dirs);
         if (err) {
             res.status(400);
             return;
         }
         for (const dir of dirs) {
-            fs.remove('./files/' + dir, (err) => {
+            fs.remove(currentDir + '/files/' + dir, (err) => {
             if (err) {
                 console.error(err);
                 return;

@@ -23,12 +23,13 @@ var paths = {
 
 };
 
-gulp.task('default', function (done) {
-  console.log('Hello World!');
-  done();
-});
 
 gulp.task('files', function (done) {
   gulp.src(paths.srcFILES).pipe(gulp.dest(paths.tmp));
   done();
 });
+
+gulp.task('clean', function () {
+  del([paths.tmp, paths.dist]);
+});
+

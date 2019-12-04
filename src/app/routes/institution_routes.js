@@ -1,4 +1,4 @@
-module.exports = function (app, validateToken, checkBodyForValidAttributes) {
+module.exports = function (app, validateToken, checkBodyForValidAttributes, currentDir) {
 const mongoose = require('mongoose');
 const Schemata = require('../../models/user');
 const Document = require('../../models/document');
