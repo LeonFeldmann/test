@@ -7,12 +7,14 @@ var paths = {
   srcAPP: 'src/app/**/**',
   srcDATA: 'src/data/**/**',
   srcFILES: 'src/files',
+  srcNEWFILES: 'src/newFiles/*',
 
 
   tmp: 'tmp',
   tmpAPP: 'tmp/app/**/**',
   tmpDATA: 'tmp/data/**/**',
   tmpFILES: 'tmp/files/**',
+  tmpNEWFILES: 'tmp/newFiles/*',
 
  
 
@@ -20,6 +22,7 @@ var paths = {
   distAPP: 'dist/app/**/**',
   distDATA: 'dist/data/**/**',
   distFILES: 'dist/files/**',
+  distNEWFILES: 'dist/newFiles/*'
 
 };
 

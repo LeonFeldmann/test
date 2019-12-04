@@ -112,7 +112,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes, curr
             if (err) {
             console.log(err);
             } else {
-            fs.copyFile("picture.png", currentDir + '/files/' + req.body.username + '/picture.png');
+            fs.copyFile(currentDir + "/picture.png", currentDir + '/files/' + req.body.username + '/picture.png');
             console.log("User dir was initialized successfully");
             }
         });
