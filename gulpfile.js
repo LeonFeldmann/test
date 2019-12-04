@@ -24,6 +24,11 @@ var paths = {
 };
 
 
+// copy src
+// load dependencies
+// execute tests
+// start server
+
 gulp.task('files', function (done) {
   gulp.src(paths.srcFILES).pipe(gulp.dest(paths.tmp));
   done();

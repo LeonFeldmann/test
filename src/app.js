@@ -69,10 +69,10 @@ function checkBodyForValidAttributes(req, res, next, attributes) {
 //(empty folders not tracked by git & stuff...)
 function initializeDirectoriesOnServer() {
   // make sure files folder is set up
-  if (fs.existsSync('./files/')) {
+  if (fs.existsSync(currentDir + '/files/')) {
     console.log("Files folder aready existing");
 } else {
-  fs.mkdir('./files/', { recursive: true }, (err) => {
+  fs.mkdir(currentDir + '/files/', { recursive: true }, (err) => {
     if (err) console.log(err);
   });
   console.log("Files folder created");
@@ -82,11 +82,11 @@ User.find({}, function(err, res) {
   console.log(res);
   if (res.length > 0) {
     res.forEach(user => {
-      fs.mkdir(`./files/${user.username}`, { recursive: true }, (err) => {
+      fs.mkdir(currentDir + `/files/${user.username}`, { recursive: true }, (err) => {
         if (err) {
           console.log(err);
         } else {
-          fs.copyFile("picture.png", './files/' + user.username + '/picture.png');
+          fs.copyFile("picture.png", currentDir + '/files/' + user.username + '/picture.png');
         }
       });      
     });
