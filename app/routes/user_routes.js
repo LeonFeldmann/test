@@ -92,7 +92,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes, curr
         password: User.hashPassword(req.body.password),
         firstName: req.body.firstName,
         lastName: req.body.lastName,
-        picture: "./default.png",
+        picture: currentDir + "/defaults/picture.png",
         institutions: ['other'],
         lastLoggedIn: new Date(),
         });
@@ -112,7 +112,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes, curr
             if (err) {
             console.log(err);
             } else {
-            fs.copyFile(currentDir + "/picture.png", currentDir + '/files/' + req.body.username + '/picture.png');
+            fs.copyFile(currentDir + "/defaults/picture.png", currentDir + '/files/' + req.body.username + '/picture.png');
             console.log("User dir was initialized successfully");
             }
         });

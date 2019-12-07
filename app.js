@@ -17,7 +17,7 @@ const upload = multer({dest: "newFiles"});
 const port = process.env.PORT || 3000;
 
 const app = express();
-const currentDir = './src';
+const currentDir = '.';
 
 const url = process.env.MONGODB_URI || 'mongodb://localhost/data';
 const db = mongoose.connection;
@@ -86,7 +86,7 @@ User.find({}, function(err, res) {
         if (err) {
           console.log(err);
         } else {
-          fs.copyFile("picture.png", currentDir + '/files/' + user.username + '/picture.png');
+          fs.copyFile(currentDir + "/defaults/picture.png", currentDir + '/files/' + user.username + '/picture.png');
         }
       });      
     });
@@ -172,14 +172,6 @@ app.post('/testUser', validateToken, (req, res) => {
 
     res.sendStatus(200);
 });
-
-
-
-
-
-
-
-
 
 
 

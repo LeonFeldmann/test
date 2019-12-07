@@ -1,6 +1,4 @@
 node_modules
-src/data
+data
 .eslintrc.js
-src/files/*
-tmp
-dist
+files/*

@@ -128,7 +128,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes, curr
       if (err) {
         // console.log('Error getting document by id');
         res.status(404).json({ "error": "This id is not associated with any existing document"});
-      } else if(fs.existsSync(document.filePath)) {
+      } else if(!fs.existsSync(document.filePath)) {
         res.status(500).json({ "error": "This document does not seem to exist anymore, probably because of a server restart"});
       } else {
         const stream = fs.createReadStream(document.filePath);
@@ -386,6 +386,13 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes, curr
     // merge pdf files given by id array and receive specifications of new document
     app.post('/mergePDFs', validateToken, (req, res, next) => checkBodyForValidAttributes(req, res, next, ['year', 'month', 'institution', 'importance']), async (req, res) => {
         
+      if (!isLocal) {
+        res.status(500).json({ "error" : "This feature is currently only available locally, since java is required"});
+        return;
+      }
+
+
+
         if (req.body.hasOwnProperty('pdfArray') && Array.isArray(req.body.pdfArray) && req.body.pdfArray.length >= 2) {
         
         const { year } = req.body;
@@ -457,7 +464,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes, curr
         });
     
             res.sendStatus(200);
-            
+            return;
         } else {
             res.status(400).json({"error" : "Please use valid document ids"});
         }
