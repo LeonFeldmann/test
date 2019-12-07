@@ -12,7 +12,7 @@ const Todo        = mongoose.model('todo', Schemata.Todo);
 describe('very basic test', function(){
 
     //create tests
-it('creates an author with sub-documents', function(done) {
+    it('creates an author with sub-documents', function(done) {
 
     const newUser = new User({
         email: "test@gmail.com",
@@ -33,6 +33,6 @@ it('creates an author with sub-documents', function(done) {
 
         });
     
-});
+    });
 
 });

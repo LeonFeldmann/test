@@ -237,8 +237,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes, curr
             let generatedFilename = dirPath + newFilename;
             let newFilesDir = currentDir + "/newFiles";
             console.log("Generated filename: " + generatedFilename);
-    
-        if (isLocal) {
+
                 console.log("moving file to dir");
                 fs.move(newFilesDir + "/" + currentFile, generatedFilename);
                 // fs.readdir(newFilesDir, (err, files) => {
@@ -251,13 +250,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes, curr
                 //   }
                 // });
                 currentFileCount --;
-            } else {
-                fs.copyFile(newFilesDir + "/" + currentFile, generatedFilename);
-                console.log("copying file to dir");
-                currentFileCount --;
-                console.log("New file count is: " + currentFileCount);
-    
-            }
+           
             makedbEntry(year, month, institution, importance, description, title, generatedFilename.substr(2), res.locals.user._id);
             
     
@@ -315,30 +308,75 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes, curr
             fs.readdir(newFilesDir, (err, files) => {
             if(err) {
                 console.log(err);
-            } else if (files.length == 0) {
+            } else if (false) {
                 currentFile = null;
     
+                  currentFileCount = 6;
+                  fs.readdir("/default/files", (err, defaultFiles) => {
+                    if(err) {
+                      console.log(err);
+                    } else {
+                      defaultFiles.forEach(file => {
+                        fs.copyFile("/default/files" + file, "/newFiles");
+                      });
+                    }
+                  });
+                  
+                console.log("File count has been reset to 6");
+
+
                 res.writeHead(200, {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'POST, GET',
                 'Access-Control-Expose-Headers': '*',
-                'fileCount': 0,
+                'fileCount': currentFileCount,
                 });
                 res.send();
     
             } else {
+              currentFileCount = files.length;
+
+              if(files.length == 0) {
+                currentFileCount = 6;
+                fs.readdir("./defaults/files", (err, defaultFiles) => {
+                  if(err) {
+                    console.log(err);
+                  } else {
+                    defaultFiles.forEach(file => {
+                      fs.copyFile("defaults/files/" + file, "newFiles/" + file);
+                    });
+                  }
+
+                  setTimeout(()=> {
+                    let fileToSend = newFilesDir + '/ProblemSheet01.pdf';
+                    currentFile = 'ProblemSheet01.pdf';
+                    console.log("new Currentfile is: " + currentFile);
+        
+                    const stream = fs.createReadStream(fileToSend);
+                    res.writeHead(200, {
+                    'Content-disposition': `attachment; filename='${encodeURIComponent(path.basename(fileToSend))}'`,
+                    'Content-type': 'application/pdf',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST, GET',
+                    'fileCount': currentFileCount,
+                    'Access-Control-Expose-Headers': '*',
+                    });
+                    stream.pipe(res);
+      
+                  },1000);
+           
+                });
+              
+              console.log("File count has been reset to 6");
+
+
+
+              } else {
+
                 console.log(files[0]);
     
-                if (isLocal) {
-                currentFileCount = files.length;
-                console.log("File count is now " + files.length);
-                } else {
-                currentFileCount = 6;
-                console.log("File count has been reset to 6");
-                }
-    
                 let fileToSend = newFilesDir + '/' + files[0];
-                currentFile = files[0]
+                currentFile = files[0];
                 console.log("new Currentfile is: " + currentFile);
     
                 const stream = fs.createReadStream(fileToSend);
@@ -351,6 +389,11 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes, curr
                 'Access-Control-Expose-Headers': '*',
                 });
                 stream.pipe(res);
+
+              }
+
+
+
     
             }
             });
