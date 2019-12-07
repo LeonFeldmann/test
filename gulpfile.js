@@ -59,7 +59,7 @@ var processes = {server: null, mongo : null};
 gulp.task('start:server', function (cb) {
   // The magic happens here ...
   processes.server = nodemon({
-      script: currentFolder + "/app.js",
+      script: "app.js",
       ext: "js"
   });
   cb();
@@ -70,7 +70,7 @@ paths.dbLogs = currentFolder + '/data/logs';
 gulp.task('start:mongo', function (cb) {
   //processes.mongo = child_process.exec('mongod --config /Users/leonfeldmann/Desktop/WebFileViewerProject/src/mongod.conf', function (err, stdout, stderr) {});
   
-  processes.mongo = child_process.exec('mongod --dbpath ' + paths.dbDir + "/ --logpath " + paths.dbLogs + "/mongo.log", function (err, stdout, stderr) {});
+  processes.mongo = child_process.exec('mongod --dbpath data/ --logpath data/logs/mongo.log', function (err, stdout, stderr) {});
 
   cb();
 });
@@ -85,65 +85,6 @@ gulp.task('start:mongo', function (cb) {
 
 
 
-gulp.task('app', function (done) {
-  gulp.src(paths.srcAPP).pipe(gulp.dest(paths.tmp));
-  done();
-});
-
-gulp.task('data', function (done) {
-  gulp.src(paths.srcDATA).pipe(gulp.dest(paths.tmp));
-  done();
-});
-gulp.task('datalogs', function (done) {
-  gulp.src(paths.srcDATALOGS).pipe(gulp.dest(paths.tmp));
-  done();
-});
-gulp.task('files', function (done) {
-  gulp.src(paths.srcFILES).pipe(gulp.dest(paths.tmp));
-  done();
-});
-gulp.task('newFiles', function (done) {
-  gulp.src(paths.srcNEWFILES).pipe(gulp.dest(paths.tmp));
-  done();
-});
-gulp.task('models', function (done) {
-  gulp.src(paths.srcMODELS).pipe(gulp.dest(paths.tmp));
-  done();
-});
-gulp.task('app.js', function (done) {
-  gulp.src(paths.srcAPPJS).pipe(gulp.dest(paths.tmp));
-  done();
-});
-gulp.task('defaults', function (done) {
-  gulp.src(paths.srcDEFAULTS).pipe(gulp.dest(paths.tmp));
-  done();
-});
-gulp.task('mongoConfig', function (done) {
-  gulp.src(paths.srcMONGOCONFIG).pipe(gulp.dest(paths.tmp));
-  done();
-});
-
-var folder = paths.tmp;
-
-gulp.task('build', function (done) {
-
-  gulp.src(paths.srcDATA).pipe(gulp.dest(folder));
-  gulp.src(paths.srcDATALOGS).pipe(gulp.dest(folder + '/data'));
-
-
-  gulp.src(paths.srcAPP).pipe(gulp.dest(folder));
-  gulp.src(paths.srcFILES).pipe(gulp.dest(folder));
-  gulp.src(paths.srcNEWFILES).pipe(gulp.dest(folder));
-  gulp.src(paths.srcMODELS).pipe(gulp.dest(folder));
-  gulp.src(paths.srcDEFAULTS).pipe(gulp.dest(folder));
-  gulp.src(paths.srcAPPJS).pipe(gulp.dest(folder));
-  gulp.src(paths.srcMONGOCONFIG).pipe(gulp.dest(folder));
-
-
-  done();
-});
-
-
 // function runCommand(command) {
 //   return function (cb) {
 //     exec(command, function (err, stdout, stderr) {
@@ -155,13 +96,7 @@ gulp.task('build', function (done) {
 // }
 
 //gulp.task('run', gulp.parallel('start:mongo', 'start:server'));
-gulp.task('run', gulp.series('build', 'start:mongo', 'start:server'));
-
-
-gulp.task('clean', function (done) {
-  del([paths.tmp, paths.dest]);
-  done();
-});
+gulp.task('run', gulp.series('start:mongo', 'start:server'));
 
 
 

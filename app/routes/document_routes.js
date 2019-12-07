@@ -110,7 +110,7 @@ module.exports = function (app, validateToken, checkBodyForValidAttributes, curr
         
   return generatedFilename;       
     }
-
+    const port = process.env.PORT || 3000;
     function isLocal() {
         if (port == 3000) {
           return true;
